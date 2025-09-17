@@ -3,8 +3,11 @@ import { FiEdit, FiShoppingBag, FiHeart, FiMapPin, FiCreditCard, FiSettings, FiL
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AccountSettingsTab from './profileTabs/AccountSettingsTab';
-import { Link } from 'react-router-dom';
+import { Link} from 'react-router-dom';
+import {removeCookie, getCookie } from "../utils/cookieHelper"; 
+
 const ProfilePage = () => {
+
   const [user, setUser] = useState({
     username: '',
     email: '',
@@ -13,19 +16,22 @@ const ProfilePage = () => {
   });
 
   const navigate = useNavigate();
+const handleLogout = () => {
+  
+// ✅ Remove the authToken from browser cookies
+  removeCookie("authToken");
 
-  const handleLogout = async () => {
-    await axios.post('http://localhost:5000/api/auth/logout', {}, {
-      withCredentials: true,
-    });
-    navigate('/login');
-  };
-
+ 
+  navigate("/");
+};
   useEffect(() => {
+
+    const authToken = getCookie("authToken");
+
     const fetchUser = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/auth/profile', {
-          withCredentials: true,
+        const res = await axios.get('http://localhost:5000/api/auth/profile',{
+          headers: { Authorization: `Bearer ${authToken}` },
         });
         setUser(res.data.user);
       } catch (err) {
@@ -76,7 +82,7 @@ const ProfilePage = () => {
               {navItem('/profile/orders', <FiShoppingBag />, 'My Orders')}
               {navItem('/profile/wishlist', <FiHeart />, 'Wishlist')}
 
-              {navItem('/profile/payment', <FiCreditCard />, 'Payment Methods')}
+              
               {navItem('/profile/account-settings', <FiSettings />, 'Account Settings')}
 
               

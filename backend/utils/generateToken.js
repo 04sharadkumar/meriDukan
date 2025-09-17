@@ -1,20 +1,11 @@
 import jwt from "jsonwebtoken";
 
-const generateToken = (user, res) => {
-  const token = jwt.sign(
+const generateToken = (user) => {
+  return jwt.sign(
     { id: user._id, isAdmin: user.isAdmin },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
-
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  });
-
-  return token; // ✅ Ensure token is returned if needed in controller
 };
 
 export default generateToken;

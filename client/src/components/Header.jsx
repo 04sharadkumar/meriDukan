@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   FiMenu,
-  FiSearch,
   FiUser,
   FiHeart,
   FiShoppingCart,
@@ -11,9 +10,9 @@ import { IoFlashOutline } from "react-icons/io5";
 import { Link } from "react-router-dom";
 import { useWishlist } from "../context/WishlistContext";
 import { useCart } from "../context/CartContext";
+import SearchBar from "./SearchBar";
 
 function Header() {
-  const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { cartItems = [] } = useCart();
@@ -32,27 +31,15 @@ function Header() {
               <FiMenu className="text-2xl" />
             </button>
             <Link to="/">
-              <h1 className="text-2xl font-bold text-blue-600">Tanu & Manu</h1>
+              <h1 className="text-2xl font-bold text-blue-600 hidden  sm:block">Tanu & Manu</h1>
             </Link>
           </div>
 
-          {/* Search Bar */}
-          <div className="hidden md:flex flex-1 mx-6">
-            <div className="relative w-full max-w-2xl">
-              <input
-                type="text"
-                placeholder="Search for products..."
-                className="w-full py-2.5 px-4 pr-10 rounded-lg text-gray-700 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <button className="absolute right-0 top-0 h-full px-4 text-blue-600">
-                <FiSearch className="text-xl" />
-              </button>
-            </div>
-          </div>
+          {/* ✅ Single SearchBar (handles desktop + mobile view) */}
+          <SearchBar />
 
           {/* Icons */}
+          
           <div className="flex items-center space-x-5">
             <Link to="/wishlist">
               <button className="relative text-blue-600 hover:text-blue-800">
@@ -84,46 +71,74 @@ function Header() {
           </div>
         </div>
 
-        {/* Mobile Search */}
-        <div className="mt-3 md:hidden">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search for products..."
-              className="w-full py-2 px-4 pr-10 rounded-lg text-gray-700 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <button className="absolute right-0 top-0 h-full px-3 text-blue-600">
-              <FiSearch className="text-xl" />
-            </button>
-          </div>
-        </div>
-      </div>
+        {/* Mobile Menu */}
+{mobileMenuOpen && (
+  <div className="md:hidden fixed inset-0 z-50 flex">
+    {/* Click outside overlay */}
+    <div
+      className="fixed inset-0 pointer-events-auto"
+      onClick={() => setMobileMenuOpen(false)}
+    ></div>
 
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-white text-blue-900 shadow-lg absolute top-16 left-0 right-0 z-20 p-4 border-t border-gray-200 rounded-b-xl">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2 text-blue-600">
-              <FiUser className="text-xl" />
-              <span>My Account</span>
-            </div>
-            <div className="flex items-center space-x-2 text-blue-600">
-              <FiHeart className="text-xl" />
-              <span>Wishlist</span>
-            </div>
-            <div className="flex items-center space-x-2 text-blue-600">
-              <BiCategory className="text-xl" />
-              <span>Categories</span>
-            </div>
-            <div className="flex items-center space-x-2 text-blue-600">
-              <IoFlashOutline className="text-xl" />
-              <span>Offers</span>
-            </div>
-          </div>
-        </div>
-      )}
+    {/* Sidebar */}
+    <div
+      className={`relative w-52 bg-white/30 backdrop-blur-md h-full shadow-lg transform transition-transform duration-300 ease-in-out pointer-events-auto ${
+        mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+      }`}
+    >
+      {/* Close Button */}
+      <button
+        className="absolute top-2 right-2 text-blue-600 hover:text-blue-800 p-2"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        ✕
+      </button>
+
+      <div className="p-4 flex flex-col space-y-4 mt-6">
+        <h2 className="text-lg font-bold text-blue-600 mb-3">Menu</h2>
+
+        <Link
+          to="/profile"
+          className="flex items-center space-x-2 p-2 rounded-lg hover:bg-blue-50/30 transition"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <FiUser className="text-xl text-blue-600" />
+          <span className="text-blue-700 font-medium text-sm">My Account</span>
+        </Link>
+
+        <Link
+          to="/wishlist"
+          className="flex items-center space-x-2 p-2 rounded-lg hover:bg-blue-50/30 transition"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <FiHeart className="text-xl text-blue-600" />
+          <span className="text-blue-700 font-medium text-sm">Wishlist</span>
+        </Link>
+
+        <Link
+          to="/categories"
+          className="flex items-center space-x-2 p-2 rounded-lg hover:bg-blue-50/30 transition"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <BiCategory className="text-xl text-blue-600" />
+          <span className="text-blue-700 font-medium text-sm">Categories</span>
+        </Link>
+
+        <Link
+          to="/offers"
+          className="flex items-center space-x-2 p-2 rounded-lg hover:bg-blue-50/30 transition"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <IoFlashOutline className="text-xl text-blue-600" />
+          <span className="text-blue-700 font-medium text-sm">Offers</span>
+        </Link>
+      </div>
+    </div>
+  </div>
+)}
+
+
+      </div>
     </header>
   );
 }

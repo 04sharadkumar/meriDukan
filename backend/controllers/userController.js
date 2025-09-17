@@ -7,7 +7,6 @@ export const userRegister = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    
     if (!username || !email || !password) {
       return res.status(400).json({ message: "All fields are required." });
     }
@@ -17,14 +16,14 @@ export const userRegister = async (req, res) => {
       return res.status(400).json({ message: "User already exists with this email." });
     }
 
-    // ✅ Create new user with hashed password (handled in model pre-save)
-    const newUser = new User({ username: username, email, password });
+    const newUser = new User({ username, email, password });
     await newUser.save();
 
-    // ✅ Generate token and send cookie
-    generateToken(newUser, res);
+    // ✅ Token generate karo (but cookie mat bhejo)
+    const authToken = generateToken(newUser);
 
     res.status(201).json({
+      success: true,
       message: 'User registered successfully',
       user: {
         id: newUser._id,
@@ -32,67 +31,49 @@ export const userRegister = async (req, res) => {
         email: newUser.email,
         isAdmin: newUser.isAdmin,
       },
+      authToken, // 👈 Frontend khud cookie me store karega
     });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
 
-
+// ✅ Login Controller
 export const userLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-  
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
-
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const token = generateToken(user, res);
-
-    console.log(token);
-    
-
-    res.cookie("token",token,{
-      httpOnly: false,    // to make it secure chage into true
-      sameSite: "Lax",
-      secure: process.env.NODE_ENV === "production",
-    })
+    // ✅ Token generate
+    const authToken = generateToken(user);
 
     res.status(200).json({
-      success:true,
-      message: "Login successfully",
+      success: true,
+      message: "Login successful",
       user: {
         id: user._id,
         name: user.username,
         email: user.email,
         isAdmin: user.isAdmin,
       },
-      token,     
+      authToken, // 👈 bas token bhejna hai
     });
   } catch (error) {
     res.status(500).json({ message: 'Login failed', error: error.message });
   }
 };
 
-
+// ✅ Logout (frontend cookie clear karega, backend sirf success bheje)
 export const userLogout = (req, res) => {
-
-  res.clearCookie('token', {
-    httpOnly: true,
-    sameSite: 'strict',
-    secure: process.env.NODE_ENV === 'production',
-  });
-  
   res.status(200).json({ message: 'Logout successful' });
 };
 
-
-// backend/controllers/authController.js
-
+// ✅ Profile Controllers
 export const getUserProfile = async (req, res) => {
   try {
     const user = req.user;
@@ -102,8 +83,6 @@ export const getUserProfile = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch profile' });
   }
 };
-
-
 
 export const updateProfile = async (req, res) => {
   const { username, phone, address, newsletter } = req.body;
@@ -117,7 +96,6 @@ export const updateProfile = async (req, res) => {
     user.address = address || user.address;
     user.newsletter = newsletter === 'true';
 
-    // ✅ Save avatar if uploaded
     if (req.file && req.file.path) {
       user.avatar = req.file.path;
     }
@@ -130,10 +108,3 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
-
-
-
-
-
-

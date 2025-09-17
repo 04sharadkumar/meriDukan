@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { setCookie } from "../utils/cookieHelper";
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -9,6 +10,7 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  
 
 const handleSubmit = async (e) => {
   e.preventDefault();
@@ -29,18 +31,31 @@ const handleSubmit = async (e) => {
     const response = await axios.post('http://localhost:5000/api/auth/login',
 
       {email,password,rememberMe,},
-      {withCredentials: true,}
+     
     );
 
-    const { user } = response.data;
+    const { authToken, user } = response.data;
 
+    console.log(response.data);
+    console.log(response.data.user.isAdmin);
+    
+    
+
+    
+if (user.isAdmin) {
+ 
+  setCookie("isAdmin", "true", { maxAge: 7 * 24 * 60 * 60 });
+  setCookie("authToken", authToken, { maxAge: 7 * 24 * 60 * 60 });
+} else {
+ 
+  setCookie("isAdmin", "false", { maxAge: 7 * 24 * 60 * 60 });
+  setCookie("authToken", authToken, { maxAge: 7 * 24 * 60 * 60 });
+}
+
+    console.log("Cookie set successfully:");  
     toast.success('Login successful!');
 
-    if (user?.isAdmin) {
-      navigate('/admin');
-    } else {
-      navigate('/profile');
-    }
+    navigate(user?.isAdmin ? "/admin" : "/profile");
 
   } catch (err) {
    
