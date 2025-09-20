@@ -3,10 +3,9 @@ import {
   placeOrder,
   getMyOrders,
   getAllOrders,
-  
   getRecentOrders,
-
-  createOrder
+  createOrder,
+  placeCashOrder
 } from "../controllers/orderController.js";
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
@@ -28,5 +27,8 @@ router.get("/admin/all", protect, adminOnly, getAllOrders);
 
 
 router.post("/create", protect, createOrder);
+
+router.post("/cash", protect, placeCashOrder);
+
 
 export default router;

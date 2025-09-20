@@ -37,11 +37,29 @@ export const addToCart = async (req, res) => {
 
 
 export const getCart = async (req, res) => {
-  
-  const cart = await Cart.findOne({ user: req.user._id });
-  if (!cart) return res.status(200).json({ items: [] });
+  try {
+    const cart = await Cart.findOne({ user: req.user._id })
+      .populate("items.product", "name price discountPrice images"); 
+      // sirf required fields populate kar rahe
 
-  res.json(cart);
+    if (!cart) return res.status(200).json({ items: [] });
+
+    // format karke discountPrice frontend bhejna
+    const formattedItems = cart.items.map((item) => ({
+      _id: item._id,
+      product: item.product._id,
+      name: item.product.name,
+      price: item.product.price,
+      discountPrice: item.product.discountPrice || null, // 👈 yaha add kiya
+      quantity: item.quantity,
+      image: item.image || item.product.images?.[0]?.url, // fallback image
+    }));
+
+    res.status(200).json({ items: formattedItems });
+  } catch (err) {
+    console.error("Error fetching cart:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 

@@ -178,4 +178,47 @@ export const createOrder = async (req, res) => {
 };
 
 
+// orderController.js me ek naya controller function:
+export const placeCashOrder = async (req, res) => {
+  try {
+    const { cartItems, shippingInfo, paymentMethod, totalAmount } = req.body;
+    if (!cartItems || cartItems.length === 0) {
+      return res.status(400).json({ success: false, message: "No items in cart" });
+    }
+
+   const order = new Order({
+  user: req.user.id,
+  orderItems: cartItems.map(item => ({
+    product: item._id || item.id || null,
+    name: item.name,
+    qty: item.qty,
+    price: item.price,
+    image: item.image || ""
+  })),
+  shippingAddress: shippingInfo,
+  paymentMethod,
+  paymentStatus: (paymentMethod.toLowerCase() === "cash" || paymentMethod.toLowerCase() === "cod") 
+    ? "pending" 
+    : "paid",
+  totalPrice: totalAmount,
+  isPaid: (paymentMethod.toLowerCase() === "cash" || paymentMethod.toLowerCase() === "cod") 
+    ? false 
+    : true,
+  paidAt: (paymentMethod.toLowerCase() === "cash" || paymentMethod.toLowerCase() === "cod") 
+    ? null 
+    : new Date()
+});
+
+
+
+    await order.save();
+
+    res.json({ success: true, message: "Order placed successfully", order });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
 

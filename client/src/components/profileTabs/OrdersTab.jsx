@@ -11,6 +11,9 @@ const OrdersPage = () => {
         const res = await axios.get("http://localhost:5000/api/orders/my-orders", {
           withCredentials: true,
         });
+
+        console.log(res.data);
+        
         setOrders(res.data);
       } catch (err) {
         console.error("Error fetching orders:", err);
@@ -20,18 +23,18 @@ const OrdersPage = () => {
     fetchOrders();
   }, []);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'text-green-600';
-      case 'processing':
-        return 'text-blue-600';
-      case 'cancelled':
-        return 'text-red-600';
-      default:
-        return 'text-yellow-600';
-    }
-  };
+  // const getStatusColor = (status) => {
+  //   switch (status) {
+  //     case 'completed':
+  //       return 'text-green-600';
+  //     case 'processing':
+  //       return 'text-blue-600';
+  //     case 'cancelled':
+  //       return 'text-red-600';
+  //     default:
+  //       return 'text-yellow-600';
+  //   }
+  // };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -52,9 +55,9 @@ const OrdersPage = () => {
                 </div>
                 <div className="text-right">
                   <p className="font-medium">₹{order.totalPrice.toFixed(2)}</p>
-                  <p className={`text-sm ${getStatusColor(order.status)}`}>
+                  {/* <p className={`text-sm ${getStatusColor(order.status)}`}>
                     {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                  </p>
+                  </p> */}
                 </div>
               </div>
 

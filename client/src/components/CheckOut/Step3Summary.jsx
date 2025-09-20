@@ -12,7 +12,7 @@ export default function Step3Summary({
   cart: cartProp = [],
 }) {
   const [cart, setCart] = useState(cartProp || []);
-  const [loading, setLoading] = useState(cartProp.length === 0); // 🔥 agar prop me data hai to loading=false
+  const [loading, setLoading] = useState(cartProp.length === 0);
 
   useEffect(() => {
     if (step !== 3) return;
@@ -21,9 +21,12 @@ export default function Step3Summary({
       try {
         setLoading(true);
         const res = await axiosInstance.get("/api/cart");
+
+        console.log(res.data);
+
         const items = (res.data.items || []).map((item) => ({
           ...item,
-          quantity: item.quantity || item.qty || 1, // 🔥 normalize
+          quantity: item.quantity || item.qty || 1,
         }));
         setCart(items);
         onCartUpdate && onCartUpdate(items);
@@ -37,22 +40,29 @@ export default function Step3Summary({
     };
 
     fetchCart();
-  }, [step]); // 🔥 warning hat gaya
+  }, [step]);
 
-  // Subtotal, discounts, etc.
+  // ✅ Totals with discountPrice
   const subtotal = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => sum + (item.discountPrice || item.price) * item.quantity,
     0
   );
-  const discount = cart.reduce(
-    (sum, item) => sum + (item.discount || 0) * item.quantity,
-    0
-  );
+
+  // const discount = cart.reduce(
+  //   (sum, item) =>
+  //     sum +
+  //     (item.price > (item.discountPrice || item.price)
+  //       ? (item.price - (item.discountPrice || item.price)) * item.quantity
+  //       : 0),
+  //   0
+  // );
+
   const protectFee = cart.reduce(
     (sum, item) => sum + (item.protectFee || 0) * item.quantity,
     0
   );
-  const total = subtotal - discount + protectFee;
+
+  const total = subtotal + protectFee;
 
   if (step !== 3) return null;
 
@@ -79,37 +89,33 @@ export default function Step3Summary({
       </div>
 
       <div className="p-6">
+
         {cart.length === 0 ? (
           <p className="text-gray-500 text-sm text-center">
             Your cart is empty.
           </p>
         ) : (
-          cart.map((item) => {
-            const discountedPrice = item.price - (item.discount || 0);
-            return (
-              <div
-                key={item._id || item.productId}
-                className="border border-gray-200 rounded-lg p-4 flex justify-between items-center mb-3 bg-white shadow-sm"
-              >
-                <div className="flex items-center">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-16 h-16 object-contain rounded-md mr-4"
-                  />
-                  <div>
-                    <h3 className="font-medium">{item.name}</h3>
-                    <p className="text-sm text-gray-500">
-                      Qty: {item.quantity}
-                    </p>
-                  </div>
+          cart.map((item) => (
+            <div
+              key={item._id || item.productId}
+              className="border border-gray-200 rounded-lg p-4 flex justify-between items-center mb-3 bg-white shadow-sm"
+            >
+              <div className="flex items-center">
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="w-16 h-16 object-contain rounded-md mr-4"
+                />
+                <div>
+                  <h3 className="font-medium">{item.name}</h3>
+                  <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                 </div>
-                <span className="font-semibold">
-                  ₹{discountedPrice * item.quantity}
-                </span>
               </div>
-            );
-          })
+              <span className="font-semibold">
+                ₹{(item.discountPrice || item.price) * item.quantity}
+              </span>
+            </div>
+          ))
         )}
 
         {cart.length > 0 && (
@@ -131,10 +137,10 @@ export default function Step3Summary({
                     productId: item.productId || item._id,
                     name: item.name,
                     qty: item.quantity,
-                    price: item.price,
+                    price: item.discountPrice || item.price, // ✅ send discounted
                     image: item.image,
                   })),
-                  totalAmount: {total},
+                  totalAmount: total, // ✅ no object wrapper
                   shippingInfo,
                   paymentMethod,
                 })

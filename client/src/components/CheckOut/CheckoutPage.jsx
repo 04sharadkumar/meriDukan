@@ -2,7 +2,8 @@
 import { useState, useEffect, useCallback } from "react";
 import Cookies from "js-cookie";
 import axiosInstance from "../../context/axiosInstance";
-import axios from "axios";
+// import axios from "axios";
+import { getCookie } from "../../utils/cookieHelper";
 
 // Steps
 import Step1Login from "./Step1Login";
@@ -27,12 +28,15 @@ export default function Checkout() {
     paymentMethod: "cash", // default
   });
 
-  // 🔹 Fetch Cart 
+  // 🔹 Fetch Cart
   useEffect(() => {
     const fetchCart = async () => {
+      const authToken = getCookie("authToken");
+      const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+
       try {
         setLoadingCart(true);
-        const res = await axiosInstance.get("/api/cart", { withCredentials: true });
+        const res = await axiosInstance.get("/api/cart", { headers });
         setCart(res.data.items || []);
       } catch (err) {
         console.error("Failed to fetch cart:", err);
@@ -46,9 +50,10 @@ export default function Checkout() {
 
   // 🔹 Check Login
   useEffect(() => {
-    const tokenFromCookie = Cookies.get("token");
-    if (tokenFromCookie) {
-      setToken(tokenFromCookie);
+    const authToken = getCookie("authToken");
+
+    if (authToken) {
+      setToken(authToken);
       setStep(2);
     }
   }, []);
@@ -60,45 +65,51 @@ export default function Checkout() {
   };
 
   // 🔹 Save order to backend after payment success
-  const handleOrderSave = async (paymentResponse) => {
-    try {
-      const orderData = {
-        userEmail: formData.email,
-        address: {
-          name: formData.name,
-          mobile: formData.mobile,
-          address: formData.address,
-          city: formData.city,
-          pincode: formData.pincode,
-        },
-        products: cart,
-        payment: {
-          method: formData.paymentMethod,
-          transactionId: paymentResponse?.id || "txn_dummy_123",
-          status: "success",
-        },
-      };
 
-      const tokenFromCookie = Cookies.get("token");
+  // const handleOrderSave = async () => {
+  //   try {
+  //     const orderData = {
+  //       user: formData.userId || "", // token se backend me extract karna safe way
+  //       orderItems: cart.map((item) => ({
+  //         product: item._id || item.id,
+  //         name: item.name,
+  //         qty: item.qty || 1,
+  //         price: item.price,
+  //         image: item.image,
+  //       })),
+  //       shippingAddress: {
+  //         name: formData.name,
+  //         mobile: formData.mobile,
+  //         address: formData.address,
+  //         city: formData.city,
+  //         pincode: formData.pincode,
+  //       },
+  //       paymentMethod: formData.paymentMethod, // "COD"
+  //       paymentStatus: "pending",
+  //       totalPrice: cart.reduce((sum, item) => sum + item.price * item.qty, 0),
+  //       isPaid: false,
+  //     };
 
-      const res = await axios.post("http://localhost:5000/api/orders/create",
-        orderData,
-        { headers: { Authorization: `Bearer ${tokenFromCookie}` } }
-      );
+  //     const authToken = getCookie("authToken");
 
-      console.log(res.data);
-      
+  //     const res = await axios.post(
+  //       "http://localhost:5000/api/orders/cash",
+  //       orderData,
+  //       { headers: { Authorization: `Bearer ${authToken}` } }
+  //     );
 
-      if (res.data.success) {
-        alert("✅ Order placed successfully!");
-        setStep(1); // Reset checkout
-        setCart([]); // Clear cart
-      }
-    } catch (err) {
-      console.error("❌ Order Save Error:", err);
-      alert("Order save failed!");
-    }
-  };
+  //     console.log(res.data);
+
+  //     if (res.data.success) {
+  //       alert("✅ hello sharaf!");
+  //       setStep(1); // Reset checkout
+  //       setCart([]); // Clear cart
+  //     }
+  //   } catch (err) {
+  //     console.error("❌ Order Save Error:", err);
+  //     alert("Order save failed!");
+  //   }
+  // };
 
   // ✅ useCallback to fix ESLint missing dependency
   const handleCartUpdate = useCallback((updatedCart) => {
@@ -108,7 +119,6 @@ export default function Checkout() {
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex justify-center items-center p-4">
       <div className="w-full max-w-4xl bg-white shadow-xl rounded-xl overflow-hidden">
-        
         {/* Progress Bar */}
         <div className="px-6 pt-6">
           <div className="flex justify-between items-center mb-4">
@@ -166,7 +176,9 @@ export default function Checkout() {
         {loadingCart ? (
           <div className="flex justify-center items-center py-10">
             <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <span className="ml-3 text-blue-600 font-medium">Loading Cart...</span>
+            <span className="ml-3 text-blue-600 font-medium">
+              Loading Cart...
+            </span>
           </div>
         ) : (
           <>
@@ -183,7 +195,7 @@ export default function Checkout() {
                   pincode: formData.pincode,
                 }}
                 paymentMethod={formData.paymentMethod}
-                onCartUpdate={handleCartUpdate}  // ✅ fixed with useCallback
+                onCartUpdate={handleCartUpdate} // ✅ fixed with useCallback
               />
             )}
 
@@ -205,10 +217,9 @@ export default function Checkout() {
                     0
                   ),
                   paymentMethod: formData.paymentMethod,
-                  userId: "", // Optional
                 }}
                 handleInputChange={handleInputChange}
-                onPaymentSuccess={handleOrderSave}
+                // onPaymentSuccess={handleOrderSave} // ensures order is saved in parent
               />
             )}
           </>

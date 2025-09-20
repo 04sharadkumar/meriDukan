@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 
 const NewSlide = () => {
   const navigate = useNavigate();
-  const [product, setProduct] = useState("");
+  const [product, setProduct] = useState([]);
 
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,7 +44,13 @@ const NewSlide = () => {
       if (res.data.products.length === 0) {
         setHasMore(false);
       } else {
-        setAllProducts((prev) => [...prev, ...res.data.products]);
+        setAllProducts((prev) => {
+  const newItems = res.data.products.filter(
+    (p) => !prev.some((item) => item._id === p._id)
+  );
+  return [...prev, ...newItems];
+});
+
       }
 
       setLoading(false);
@@ -98,7 +104,7 @@ const NewSlide = () => {
 
     if (selectedFilters.discount) {
       const discountValue = parseInt(selectedFilters.discount);
-      filtered = filtered.filter((p) => parseInt(p.discount) >= discountValue);
+      filtered = filtered.filter((p) => parseInt(p.discount?.toString().replace("%","") || "0") >= discountValue);
     }
 
     switch (selectedFilters.sortBy) {

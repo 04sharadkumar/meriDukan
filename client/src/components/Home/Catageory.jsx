@@ -13,13 +13,13 @@ function Category() {
     { id: 3, name: "Kids & Toys", image: "https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=200" },
     { id: 4, name: "Men Fashion", image: "https://images.unsplash.com/photo-1529374255404-311a2a4f1fd9?w=200" },
     { id: 5, name: "Electronics", image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200" },
-    { id: 6, name: "Home & Furniture", image: "https://images.unsplash.com/photo-1616628188502-b6a3d60bd9da?w=200" },
+    { id: 6, name: "Home & Furniture", image: "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?w=200" },
     { id: 7, name: "Sports", image: "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?w=200" },
     { id: 8, name: "Groceries", image: "https://images.unsplash.com/photo-1506806732259-39c2d0268443?w=200" },
   ];
 
   // sirf 4 dikhane ke liye
-  const displayedCategories = showAll ? categories : categories.slice(0, 4);
+  const displayedCategories = showAll ? categories : categories.slice(0, 6);
 
   return (
     <section className="mb-16 px-4 mt-8">

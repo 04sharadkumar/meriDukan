@@ -35,6 +35,7 @@ import ProductPage from './components/ProductDetails';
 
 
 import NotFound from './pages/NotFound';
+import SuccessPage from './pages/SuccessPage'
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/notfound" element={<NotFound />} />
         <Route path="*" element={<NotFound />} />
+        
 
 
        <Route path="/admin" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
@@ -65,13 +67,19 @@ function App() {
 
 
         <Route index element={<AccountSettingsTab />} />
+
+        
+
+
         <Route path="orders" element={<OrdersTab />} />
         <Route path="wishlist" element={<WishlistTab />} />
         <Route path="payment" element={<PaymentTab />} />
         <Route path="account-settings" element={<AccountSettingsTab />} />
+        
         </Route>
 
         <Route path="/wishlist" element={  <Wishlist />} />
+        <Route path="/success" element={  <SuccessPage />} />
 
 
 

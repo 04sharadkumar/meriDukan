@@ -4,14 +4,7 @@ import { useEffect, useState } from "react";
 import axiosInstance from "../context/axiosInstance";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import {
-
-  FaShieldAlt,
-  FaMinus,
-  FaPlus,
- 
-  FaTrash,
-} from "react-icons/fa";
+import { FaShieldAlt, FaMinus, FaPlus, FaTrash } from "react-icons/fa";
 import LiveAddress from "./liveAddress";
 
 const Cart = () => {
@@ -25,6 +18,8 @@ const Cart = () => {
       try {
         setLoading(true);
         const res = await axiosInstance.get("/api/cart");
+        
+
         setCart(res.data.items || []);
       } catch (err) {
         console.error("Failed to load cart:", err);
@@ -40,10 +35,9 @@ const Cart = () => {
   const removeItem = async (itemId) => {
     try {
       await axiosInstance.delete(`/api/cart/single/${itemId}`);
-       
+
       setCart((prev) => prev.filter((item) => item._id !== itemId));
       toast.success("Item removed from cart");
-      
     } catch (err) {
       console.error(err);
       toast.error("Failed to remove item");
@@ -85,18 +79,23 @@ const Cart = () => {
 
   // Totals
   const subtotal = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-  const discount = cart.reduce(
-    (sum, item) => sum + (item.discount || 0) * item.quantity,
-    0
-  );
-  const protectFee = cart.reduce(
-    (sum, item) => sum + (item.protectFee || 0) * item.quantity,
-    0
-  );
-  const total = subtotal - discount + protectFee;
+  (sum, item) => sum + (item.discountPrice || item.price) * item.quantity,
+  0
+);
+ const discount = cart.reduce(
+  (sum, item) =>
+    sum +
+    ((item.price - (item.discountPrice || item.price)) > 0
+      ? (item.price - (item.discountPrice || item.price)) * item.quantity
+      : 0),
+  0
+);
+
+const protectFee = cart.reduce(
+  (sum, item) => sum + (item.protectFee || 0) * item.quantity,
+  0
+);
+  const total = subtotal + protectFee;
 
   if (loading) {
     return (
@@ -107,13 +106,13 @@ const Cart = () => {
   }
 
   if (loading) {
-  return (
-    <div className="container mx-auto p-4 min-h-[60vh] flex flex-col items-center justify-center gap-2">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      <p className="text-gray-600">Fetching your cart...</p>
-    </div>
-  );
-}
+    return (
+      <div className="container mx-auto p-4 min-h-[60vh] flex flex-col items-center justify-center gap-2">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <p className="text-gray-600">Fetching your cart...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-50 py-6 px-4">
@@ -130,20 +129,18 @@ const Cart = () => {
             <LiveAddress />
             {/* Cart Items */}
             {cart.length === 0 ? (
-             <div className="bg-white rounded-xl shadow-md p-5 text-center text-gray-600">
-  <p className="mb-4">Your cart is empty.</p>
-  <button
-    onClick={() => navigate("/products")}
-    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow-md transition-all"
-  >
-    Shop Now
-  </button>
-</div>
-
+              <div className="bg-white rounded-xl shadow-md p-5 text-center text-gray-600">
+                <p className="mb-4">Your cart is empty.</p>
+                <button
+                  onClick={() => navigate("/products")}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow-md transition-all"
+                >
+                  Shop Now
+                </button>
+              </div>
             ) : (
               cart.map((product) => {
-                const discountedPrice =
-                  product.price - (product.discount || 0);
+                // const discountedPrice = product.price - (product.discount || 0);
 
                 return (
                   <div
@@ -175,18 +172,16 @@ const Cart = () => {
                           {/* Price Section */}
                           <div className="flex flex-wrap items-center gap-3 mb-4">
                             <span className="text-xl font-bold text-gray-800">
-                              ₹{discountedPrice}
+                              ₹{product.discountPrice || product.price}
                             </span>
-                            {product.discount > 0 && (
+                            {product.discountPrice && product.discountPrice < product.price &&  (
                               <>
                                 <span className="line-through text-gray-500">
                                   ₹{product.price}
                                 </span>
                                 <span className="text-green-600 font-medium text-sm bg-green-100 px-2 py-1 rounded">
-                                  {Math.round(
-                                    (product.discount / product.price) * 100
-                                  )}
-                                  % Off
+                                  {Math.round(((product.price - product.discountPrice) / product.price) * 100)}% Off
+                                 
                                 </span>
                               </>
                             )}
@@ -273,6 +268,7 @@ const Cart = () => {
                 PRICE DETAILS
               </h2>
 
+            
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600">
@@ -324,4 +320,4 @@ const Cart = () => {
   );
 };
 
-export default Cart; 
+export default Cart;

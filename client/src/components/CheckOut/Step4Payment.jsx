@@ -1,14 +1,9 @@
-"use client";
-import { useState } from "react";
-import axiosInstance from "../../context/axiosInstance";
-import Cookies from "js-cookie";
 
-export default function Step4Payment({
-  step,
-  formData,
-  handleInputChange,
-  onPaymentSuccess,
-}) {
+import { useState } from "react";
+import { getCookie } from "../../utils/cookieHelper";
+import axios from "axios";
+
+export default function Step4Payment({ step, formData, handleInputChange, onPaymentSuccess }) {
   const [loading, setLoading] = useState(false);
 
   if (step !== 4) return null;
@@ -19,15 +14,20 @@ export default function Step4Payment({
       return;
     }
 
+    
+
     try {
       setLoading(true);
 
-      // ------------------------------
-      // CASE 1: Cash on Delivery (COD)
-      // ------------------------------
+      const authToken = getCookie("authToken");
+      const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+
+      // ----------------
+      // CASE 1: COD
+      // ----------------
       if (formData.paymentMethod === "cash") {
         const orderPayload = {
-          cartItems: (formData.items || []).map((item) => ({
+          cartItems: (formData.items || []).map(item => ({
             productId: item.id || item._id,
             name: item.name,
             qty: item.qty || item.quantity,
@@ -35,13 +35,11 @@ export default function Step4Payment({
             image: item.image,
           })),
           shippingInfo: formData.shippingInfo || {},
-          paymentMethod: "COD",
+          paymentMethod: "Cash On Delivery",
           totalAmount: formData.totalAmount || 0,
-          userId: formData.userId || "",
         };
 
-        const { data } = await axiosInstance.post("/api/orders/cash", orderPayload);
-
+        const { data } = await axios.post("http://localhost:5000/api/orders/cash", orderPayload, { headers });
         if (data.success) {
           alert("✅ Order placed successfully with COD!");
           onPaymentSuccess && onPaymentSuccess(data);
@@ -50,43 +48,32 @@ export default function Step4Payment({
         }
       }
 
-      // ------------------------------
-      // CASE 2: Online Payment (Stripe)
-      // ------------------------------
+      // ----------------
+      // CASE 2: Card (Stripe)
+      // ----------------
       else if (formData.paymentMethod === "card") {
-        const cartItems = (formData.items || []).map((item) => ({
-          productId: item.id || item._id,
+        const cartItems = (formData.items || []).map(item => ({
+          id: item.id || item._id,
           name: item.name,
           qty: item.qty || item.quantity,
           price: item.price,
           image: item.image,
         }));
 
-        const token = Cookies.get("token");
-
-        const { data } = await axiosInstance.post(
-          "/api/payment/create-checkout-session",
-          {
-            cartItems,
-            shippingInfo: formData.shippingInfo,
-            totalAmount: formData.totalAmount,
-            userId: formData.userId || "",
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-          }
+        const { data } = await axios.post(
+          "http://localhost:5000/api/payment/create-checkout-session",
+          { cartItems, shippingInfo: formData.shippingInfo, totalAmount: formData.totalAmount },
+          { headers }
         );
 
         if (data.success && data.url) {
-          // Redirect to Stripe Checkout
+          // Redirect user to Stripe Checkout
           window.location.href = data.url;
         } else {
           alert("❌ Failed to create Stripe session!");
         }
       }
+
     } catch (error) {
       console.error("❌ Payment Error:", error.response?.data || error.message);
       alert("❌ Something went wrong during payment!");
@@ -100,9 +87,7 @@ export default function Step4Payment({
       {/* Header */}
       <div className="flex justify-between items-center p-6 cursor-pointer hover:bg-blue-50 transition-colors duration-200">
         <h2 className="font-semibold text-lg flex items-center gap-3">
-          <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm bg-blue-600 text-white shadow-md">
-            4
-          </span>
+          <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm bg-blue-600 text-white shadow-md">4</span>
           PAYMENT OPTIONS
         </h2>
       </div>
@@ -118,9 +103,7 @@ export default function Step4Payment({
             <label
               key={method.value}
               className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                formData.paymentMethod === method.value
-                  ? "border-blue-500 bg-blue-100"
-                  : "border-gray-200 hover:border-blue-400"
+                formData.paymentMethod === method.value ? "border-blue-500 bg-blue-100" : "border-gray-200 hover:border-blue-400"
               }`}
             >
               <input
@@ -143,11 +126,7 @@ export default function Step4Payment({
         <button
           onClick={handlePlaceOrder}
           disabled={loading}
-          className={`w-full ${
-            loading
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-gradient-to-r from-green-500 to-green-600 hover:shadow-lg hover:-translate-y-0.5"
-          } text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-all duration-300`}
+          className={`w-full ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-green-500 to-green-600 hover:shadow-lg hover:-translate-y-0.5"} text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-all duration-300`}
         >
           {loading ? "Processing..." : "PLACE ORDER"}
         </button>

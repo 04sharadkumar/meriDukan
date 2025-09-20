@@ -16,6 +16,7 @@ const ProfilePage = () => {
   });
 
   const navigate = useNavigate();
+  
 const handleLogout = () => {
   
 // ✅ Remove the authToken from browser cookies

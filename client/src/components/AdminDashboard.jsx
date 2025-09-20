@@ -79,6 +79,9 @@ const AdminDashboard = () => {
       const res = await axios.get("http://localhost:5000/api/orders/getRecentOrders");
       const orders = res.data.recentOrders || [];
 
+      console.log(res.data);
+      
+
       if (orders.length > 0) {
         const latestOrderId = orders[0]._id;
         if (lastOrderId && latestOrderId !== lastOrderId) {

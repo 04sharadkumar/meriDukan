@@ -32,6 +32,7 @@ export const protect = async (req, res, next) => {
   }
 };
 
+
 // ✅ Middleware to allow only admins
 export const adminOnly = (req, res, next) => {
   if (req.user && req.user.isAdmin) {
@@ -39,6 +40,7 @@ export const adminOnly = (req, res, next) => {
   } else {
     res.status(403).json({ message: "Access denied: Admins only" });
   }
+  
 };
 
 // ✅ Get current authenticated user

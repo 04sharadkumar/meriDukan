@@ -1,6 +1,6 @@
 import axios from "axios";
 import toast from "react-hot-toast";
-
+import {getCookie} from "../../utils/cookieHelper"
 
 
 
@@ -9,15 +9,21 @@ import toast from "react-hot-toast";
 export default function Step2Address({ step, setStep, formData, handleInputChange}) {
   if (step !== 2) return null;
 
+  
+
   const handleSaveAddress = async () => {
+
+    
     try {
+
+      const authToken = getCookie("authToken");
      
   
 
       const response = await axios.post(
         "http://localhost:5000/api/save-address/address", 
         formData, 
-        { withCredentials:true } 
+        {headers: { Authorization: `Bearer ${authToken}` },}     
       );
 
       if (response.data.success) {

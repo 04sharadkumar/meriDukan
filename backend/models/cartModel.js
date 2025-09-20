@@ -22,6 +22,10 @@ const cartSchema = new mongoose.Schema({
         type: Number,
         required: true,
       },
+      discountPrice: {
+        type: Number,
+        default: null, // 👈 add kiya
+      },
       quantity: {
         type: Number,
         default: 1,
