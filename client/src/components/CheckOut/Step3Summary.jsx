@@ -40,7 +40,7 @@ export default function Step3Summary({
     };
 
     fetchCart();
-  }, [step]);
+  }, [step, onCartUpdate]);
 
   // ✅ Totals with discountPrice
   const subtotal = cart.reduce(
@@ -137,7 +137,7 @@ export default function Step3Summary({
                     productId: item.productId || item._id,
                     name: item.name,
                     qty: item.quantity,
-                    price: item.discountPrice || item.price, // ✅ send discounted
+                    price: item.discountPrice && item.discountPrice > 0 ? item.discountPrice : item.price, // ✅ send discounted
                     image: item.image,
                   })),
                   totalAmount: total, // ✅ no object wrapper

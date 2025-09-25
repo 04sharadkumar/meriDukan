@@ -1,9 +1,9 @@
-"use client";
 import { useState, useEffect, useCallback } from "react";
 import Cookies from "js-cookie";
 import axiosInstance from "../../context/axiosInstance";
 // import axios from "axios";
 import { getCookie } from "../../utils/cookieHelper";
+import toast from "react-hot-toast";
 
 // Steps
 import Step1Login from "./Step1Login";
@@ -64,58 +64,21 @@ export default function Checkout() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 🔹 Save order to backend after payment success
-
-  // const handleOrderSave = async () => {
-  //   try {
-  //     const orderData = {
-  //       user: formData.userId || "", // token se backend me extract karna safe way
-  //       orderItems: cart.map((item) => ({
-  //         product: item._id || item.id,
-  //         name: item.name,
-  //         qty: item.qty || 1,
-  //         price: item.price,
-  //         image: item.image,
-  //       })),
-  //       shippingAddress: {
-  //         name: formData.name,
-  //         mobile: formData.mobile,
-  //         address: formData.address,
-  //         city: formData.city,
-  //         pincode: formData.pincode,
-  //       },
-  //       paymentMethod: formData.paymentMethod, // "COD"
-  //       paymentStatus: "pending",
-  //       totalPrice: cart.reduce((sum, item) => sum + item.price * item.qty, 0),
-  //       isPaid: false,
-  //     };
-
-  //     const authToken = getCookie("authToken");
-
-  //     const res = await axios.post(
-  //       "http://localhost:5000/api/orders/cash",
-  //       orderData,
-  //       { headers: { Authorization: `Bearer ${authToken}` } }
-  //     );
-
-  //     console.log(res.data);
-
-  //     if (res.data.success) {
-  //       alert("✅ hello sharaf!");
-  //       setStep(1); // Reset checkout
-  //       setCart([]); // Clear cart
-  //     }
-  //   } catch (err) {
-  //     console.error("❌ Order Save Error:", err);
-  //     alert("Order save failed!");
-  //   }
-  // };
-
   // ✅ useCallback to fix ESLint missing dependency
   const handleCartUpdate = useCallback((updatedCart) => {
     setCart(updatedCart);
   }, []);
 
+  const clearCart = async () => {
+  try {
+    await axiosInstance.delete("/api/cart/clearAll");
+    setCart([]); // cart ko empty kar do
+    toast.success("Cart cleared!");
+  } catch (err) {
+    console.error("Clear cart failed:", err);
+    toast.error("Failed to clear cart");
+  }
+};
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex justify-center items-center p-4">
       <div className="w-full max-w-4xl bg-white shadow-xl rounded-xl overflow-hidden">
@@ -213,13 +176,20 @@ export default function Checkout() {
                     pincode: formData.pincode,
                   },
                   totalAmount: cart.reduce(
-                    (sum, item) => sum + item.price * item.qty,
+                    (sum, item) =>
+                      sum +
+                      (item.discountPrice && item.discountPrice > 0
+                        ? item.discountPrice
+                        : item.price) *
+                        (item.qty || item.quantity),
                     0
                   ),
+
                   paymentMethod: formData.paymentMethod,
+                  
                 }}
                 handleInputChange={handleInputChange}
-                // onPaymentSuccess={handleOrderSave} // ensures order is saved in parent
+                clearCart={clearCart}
               />
             )}
           </>

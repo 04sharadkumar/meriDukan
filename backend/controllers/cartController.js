@@ -1,6 +1,57 @@
 import Cart from "../models/cartModel.js";
 import Product from "../models/productModel.js";
+import Wishlist from "../models/wishlistModel.js";
 
+
+export const moveWishlistToCart = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // 1️⃣ Get user's wishlist
+    const wishlist = await Wishlist.findOne({ user: userId }).populate("items.productId");
+    if (!wishlist || wishlist.items.length === 0) {
+      return res.status(400).json({ message: "Wishlist is empty" });
+    }
+
+    // 2️⃣ Get or create cart
+    let cart = await Cart.findOne({ user: userId });
+    if (!cart) {
+      cart = new Cart({ user: userId, items: [] });
+    }
+
+    // 3️⃣ Add wishlist items to cart
+    for (const item of wishlist.items) {
+      const product = item.productId;
+      if (!product) continue;
+
+      const index = cart.items.findIndex(i => i.product.toString() === product._id.toString());
+
+      if (index > -1) {
+        // Already in cart, increase quantity
+        cart.items[index].quantity += 1;
+      } else {
+        cart.items.push({
+          product: product._id,
+          name: product.name,
+          price: product.price,
+          quantity: 1,
+          image: product.images?.[0]?.url || "",
+        });
+      }
+    }
+
+    await cart.save();
+
+    // 4️⃣ Clear wishlist
+    wishlist.items = [];
+    await wishlist.save();
+
+    res.status(200).json({ message: "All wishlist items moved to cart", cart });
+  } catch (err) {
+    console.error("Move Wishlist to Cart Error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 export const addToCart = async (req, res) => {
   const { productId, quantity = 1 } = req.body;

@@ -12,6 +12,8 @@ import {
 } from 'react-icons/fi';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 const StatCard = ({ icon, label, value, link }) => (
   <Link to={link} className="bg-white rounded-xl p-4 shadow flex gap-4 items-center">
@@ -34,12 +36,13 @@ const AdminDashboard = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
 
+  // ---------------- FETCH FUNCTIONS ----------------
   const fetchTotalUsers = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/admin/totalUser");
       setTotalUsers(res.data.totalUser || 0);
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to load users");
     }
   };
@@ -48,8 +51,8 @@ const AdminDashboard = () => {
     try {
       const res = await axios.get("http://localhost:5000/api/products/totalProduct");
       setTotalProducts(res.data.totalProduct || 0);
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to load products");
     }
   };
@@ -58,8 +61,8 @@ const AdminDashboard = () => {
     try {
       const res = await axios.get("http://localhost:5000/api/orders/totalOrder");
       setTotalOrders(res.data.totalOrder || 0);
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to load orders");
     }
   };
@@ -68,8 +71,8 @@ const AdminDashboard = () => {
     try {
       const res = await axios.get("http://localhost:5000/api/admin/totalRevenue");
       setTotalRevenue(res.data.totalRevenue || 0);
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to load revenue");
     }
   };
@@ -78,9 +81,6 @@ const AdminDashboard = () => {
     try {
       const res = await axios.get("http://localhost:5000/api/orders/getRecentOrders");
       const orders = res.data.recentOrders || [];
-
-      console.log(res.data);
-      
 
       if (orders.length > 0) {
         const latestOrderId = orders[0]._id;
@@ -92,12 +92,13 @@ const AdminDashboard = () => {
 
       setRecentOrders(orders);
       setLastUpdated(new Date().toLocaleTimeString());
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to load recent orders");
     }
   };
 
+  // ---------------- FETCH ALL ----------------
   const fetchAll = async () => {
     await Promise.all([
       fetchTotalUsers(),
@@ -109,6 +110,7 @@ const AdminDashboard = () => {
     setLoading(false);
   };
 
+  // ---------------- EFFECT ----------------
   useEffect(() => {
     fetchAll();
     let interval = null;
@@ -118,23 +120,49 @@ const AdminDashboard = () => {
     return () => clearInterval(interval);
   }, [autoRefresh]);
 
+  // ---------------- EXPORT TO EXCEL ----------------
   const handleDownload = async () => {
-    try {
-      const res = await axios.get('http://localhost:5000/api/admin/export-orders-excel', {
-        responseType: 'blob',
-      });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'orders-report.xlsx';
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Download failed', error);
-      toast.error('Download failed');
+    if (!recentOrders || recentOrders.length === 0) {
+      toast.error("No orders to export");
+      return;
     }
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Orders');
+
+    // Header
+    sheet.addRow([
+      'Order ID', 'Customer', 'Amount', 'Date', 'Payment Status',
+      'Shipping Name', 'Shipping Mobile', 'Shipping Address', 'City', 'Country', 'Items'
+    ]);
+
+    // Data
+    recentOrders.forEach(order => {
+      sheet.addRow([
+        order._id,
+        order.user?.email || order.user || 'Guest',
+        order.totalPrice,
+        new Date(order.createdAt),
+        order.paymentStatus || order.paymentMethod || 'N/A',
+        order.shippingAddress?.name || '',
+        order.shippingAddress?.mobile || '',
+        order.shippingAddress?.address || '',
+        order.shippingAddress?.city || '',
+        order.shippingAddress?.country || '',
+        (order.orderItems || []).map(item => `${item.name} (x${item.qty})`).join(', ')
+      ]);
+    });
+
+    // Date formatting
+    sheet.getColumn(4).numFmt = 'dd/mm/yyyy hh:mm:ss';
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'orders_report.xlsx');
+
+    toast.success("Orders exported successfully!");
   };
 
+  // ---------------- JSX ----------------
   return (
     <div className="p-4 md:p-8 bg-gray-100 min-h-screen">
       {/* Header */}
@@ -178,6 +206,8 @@ const AdminDashboard = () => {
               <StatCard icon={<FiShoppingCart />} label="Orders" value={totalOrders} link="/admin/orders" />
               <StatCard icon={<FiUsers />} label="Users" value={totalUsers} link="/admin/users" />
               <StatCard icon={<FiDollarSign />} label="Revenue" value={`₹${totalRevenue}`} link="/admin/revenue" />
+              <StatCard icon={<FiRefreshCw />} label="Banners" value="Manage" link="/admin/banners" />
+             
             </>
         }
       </div>

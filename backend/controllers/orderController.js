@@ -1,5 +1,7 @@
 // controllers/orderController.js
 import Stripe from "stripe";
+import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 import Order from "../models/orderModel.js";
@@ -181,42 +183,57 @@ export const createOrder = async (req, res) => {
 // orderController.js me ek naya controller function:
 export const placeCashOrder = async (req, res) => {
   try {
-    const { cartItems, shippingInfo, paymentMethod, totalAmount } = req.body;
-    if (!cartItems || cartItems.length === 0) {
-      return res.status(400).json({ success: false, message: "No items in cart" });
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: "No token provided" });
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id;
+
+    const { cartItems, shippingInfo, totalAmount } = req.body;
+
+    
+    
+    if (!cartItems || cartItems.length === 0) return res.status(400).json({ message: "No items in cart" });
+
+    // ✅ Duplicate COD check
+
+    const existingCODOrder = await Order.findOne({
+      user: userId,
+      paymentMethod: "Cash On Delivery",
+      paymentStatus: "pending",
+      totalPrice: totalAmount,
+    });
+
+    if (existingCODOrder) {
+      return res.status(201).json({ success: true, message: " Cash On Delivery order already exists", order: existingCODOrder });
     }
 
-   const order = new Order({
-  user: req.user.id,
-  orderItems: cartItems.map(item => ({
-    product: item._id || item.id || null,
-    name: item.name,
-    qty: item.qty,
-    price: item.price,
-    image: item.image || ""
-  })),
-  shippingAddress: shippingInfo,
-  paymentMethod,
-  paymentStatus: (paymentMethod.toLowerCase() === "cash" || paymentMethod.toLowerCase() === "cod") 
-    ? "pending" 
-    : "paid",
-  totalPrice: totalAmount,
-  isPaid: (paymentMethod.toLowerCase() === "cash" || paymentMethod.toLowerCase() === "cod") 
-    ? false 
-    : true,
-  paidAt: (paymentMethod.toLowerCase() === "cash" || paymentMethod.toLowerCase() === "cod") 
-    ? null 
-    : new Date()
-});
+    // ✅ Map products properly
+    const orderItems = cartItems.map((i) => ({
+      product: i.id || i._id || null, // Save product _id here
+      name: i.name || "Unknown Product",
+      qty: i.qty || i.quantity || 1,
+      price: i.discountPrice && i.discountPrice > 0 ? i.discountPrice : i.price,
+      image: i.image || "",
+    }));
 
-
+    const order = new Order({
+      user: userId,
+      orderItems,
+      shippingAddress: shippingInfo,
+      paymentMethod: "Cash On Delivery",
+      paymentStatus: "pending",
+      totalPrice: totalAmount,
+      isPaid: false,
+    });
 
     await order.save();
 
-    res.json({ success: true, message: "Order placed successfully", order });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(201).json({ success: true, message: "Cash On Delivery Order placed successfully", order });
+  } catch (error) {
+    console.error("Cash On Delivery Order Error:", error.message);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 

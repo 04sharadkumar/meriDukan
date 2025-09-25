@@ -58,26 +58,40 @@ const removeFromWishlist = async (productId) => {
 
 
   // Move all to cart
-  const moveAllToCart = () => {
-    wishlistItems.forEach(item => {
-      const product = item.productId;
-      if (product?.stock) {
-        addToCart(product);
-      }
-    });
-    alert("All available items moved to cart!");
-  };
+const moveAllToCart = async () => {
+  try {
+    if (!user) {
+      // Guest user: localStorage se cart me add karo
+      wishlistItems.forEach(item => addToCart(item.productId));
+      setWishlistItems([]);
+      localStorage.removeItem("wishlistItems");
+      toast.success("All items moved to cart!");
+      return;
+    }
 
-  const handleAddToCart = async (productId) => {
+    // Logged in user: backend API call
+    await axiosInstance.post("/api/cart/wishlist/move-to-cart");
+    setWishlistItems([]);
+    toast.success("All items moved to cart!");
+  } catch (error) {
+    console.error("Error moving all to cart:", error);
+    toast.error("Something went wrong!");
+  }
+};
+
+const handleAddToCart = async (productId) => {
   try {
     await axiosInstance.post('/api/cart', {
       productId,
       quantity: 1,
     });
-    toast.success('Added to cart!');
+
+    // Remove from wishlist also
+    removeFromWishlist(productId);
+
+    toast.success('Moved to cart!');
   } catch (err) {
     console.log(err);
-    
     toast.error('Login to add to cart');
   }
 };

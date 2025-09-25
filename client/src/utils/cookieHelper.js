@@ -12,7 +12,7 @@ const cookies = new Cookies();
 export const setCookie = (name, value, options = {}) => {
   cookies.set(name, value, {
     path: "/",
-    sameSite: "strict", // prevents CSRF
+    sameSite: "strict",
     secure: import.meta.env.VITE_NODE_ENV === "production", // only HTTPS in prod
     ...options,
   });
@@ -25,3 +25,5 @@ export const getCookie = (name) => cookies.get(name);
 export const removeCookie = (name, options = {}) => {
   cookies.remove(name, { path: "/", ...options });
 };
+
+

@@ -25,7 +25,7 @@ import ProtectedRoute from './context/ProtectedRoute'
 
 import OrdersTab from './components/profileTabs/OrdersTab';
 import WishlistTab from './components/profileTabs/WishlistTab';
-import PaymentTab from './components/profileTabs/PaymentTab';
+import PaymentHistory from './components/profileTabs/PaymentHistory';
 import AccountSettingsTab from './components/profileTabs/AccountSettingsTab'
 import RevenueTab from './components/Admin/RevenueTab';
 
@@ -36,6 +36,7 @@ import ProductPage from './components/ProductDetails';
 
 import NotFound from './pages/NotFound';
 import SuccessPage from './pages/SuccessPage'
+import AdminBannerPage from './pages/AdminBannerPage';
 
 function App() {
   return (
@@ -59,6 +60,9 @@ function App() {
        <Route path="/admin/users" element={<ProtectedAdminRoute><User /></ProtectedAdminRoute>} />
        <Route path="/admin/orders" element={<ProtectedAdminRoute><OrderTab /></ProtectedAdminRoute>} />
        <Route path="/admin/revenue" element={<ProtectedAdminRoute><RevenueTab /></ProtectedAdminRoute>} />
+       <Route path="/admin/banners" element={<ProtectedAdminRoute><AdminBannerPage /></ProtectedAdminRoute>} />
+
+
 
 
         {/* ✅ Protected Routes */}
@@ -73,7 +77,7 @@ function App() {
 
         <Route path="orders" element={<OrdersTab />} />
         <Route path="wishlist" element={<WishlistTab />} />
-        <Route path="payment" element={<PaymentTab />} />
+        <Route path="paymentHistory" element={<PaymentHistory />} />
         <Route path="account-settings" element={<AccountSettingsTab />} />
         
         </Route>

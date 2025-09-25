@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 
 function CustomerFavorites() {
   const navigate = useNavigate();
-  const {  toggleWishlist, isInWishlist } = useWishlist();
+  const { toggleWishlist, isInWishlist } = useWishlist();
 
   const [topRatedProducts, setTopRatedProducts] = useState([]);
   const [reviewStats, setReviewStats] = useState({});
@@ -48,7 +48,9 @@ function CustomerFavorites() {
   useEffect(() => {
     const fetchTopRatedProducts = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/review/top-rated");
+        const res = await axios.get(
+          "http://localhost:5000/api/review/top-rated"
+        );
         setTopRatedProducts(res);
       } catch (error) {
         console.error("Error fetching top-rated products:", error);
@@ -71,7 +73,10 @@ function CustomerFavorites() {
             );
             stats[productId] = res.data;
           } catch (error) {
-            console.error(`Error fetching stats for product ${productId}`, error);
+            console.error(
+              `Error fetching stats for product ${productId}`,
+              error
+            );
           }
         })
       );
@@ -132,20 +137,20 @@ function CustomerFavorites() {
 
                 {/* Wishlist */}
                 <button
-  onClick={(e) => {
-    e.stopPropagation();  // prevents navigating to product page
-    toggleWishlist(product);
-  }}
-  className={`absolute top-2 right-2 p-2 rounded-full transition-all ${
-    isInWishlist(product._id) ? "bg-blue-600 text-white" : "bg-white text-gray-700"
-  } shadow-md hover:scale-105`}
->
-  <FiHeart
-    className={`${isInWishlist(product._id) ? "fill-current" : ""}`}
-  />
-</button>
-
-
+                  onClick={(e) => {
+                    e.stopPropagation(); // prevents navigating to product page
+                    toggleWishlist(product);
+                  }}
+                  className={`absolute top-2 right-2 p-2 rounded-full transition-all 
+                    
+                    ${isInWishlist(product._id) ? "bg-blue-600 text-white": "bg-white text-gray-700"} shadow-md hover:scale-105`}
+                >
+                  <FiHeart
+                    className={`${
+                      isInWishlist(product._id) ? "fill-current" : ""
+                    }`}
+                  />
+                </button>
               </div>
 
               {/* Info */}
@@ -175,7 +180,7 @@ function CustomerFavorites() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleAddToCart(product._id)
+                      handleAddToCart(product._id);
                     }}
                     className="text-xs bg-blue-600 text-white p-2  hover:bg-blue-700 transition-colors shadow-md"
                   >

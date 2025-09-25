@@ -4,12 +4,14 @@ import jwt from "jsonwebtoken";
 import Order from "../models/orderModel.js";
 
 dotenv.config();
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // -------------------------
 // 🟢 CREATE CHECKOUT SESSION (Stripe)
 // -------------------------
 export const createCheckoutSession = async (req, res) => {
+  
   try {
     // 1. Token verify karo
     const authHeader = req.headers.authorization;
@@ -80,112 +82,126 @@ export const createCheckoutSession = async (req, res) => {
 export const verifypaymentSession = async (req, res) => {
   try {
     const { sessionId } = req.body;
-    if (!sessionId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Session ID missing" });
-    }
+    if (!sessionId) return res.status(400).json({ success: false, message: "Session ID missing" });
 
-    // 1. Stripe se session fetch
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    // 2. Payment status check
-    if (session.payment_status === "paid") {
-      // Save Order in DB
-      const order = new Order({
-        user: session.metadata.userId,
-
-        orderItems: JSON.parse(session.metadata.cartItems).map((i) => ({
-          product: i.id || null,
-          name: i.name || "Unknown Product",
-          qty: i.qty,
-          price: i.price,
-          image: i.image || "",
-        })),
-
-        shippingAddress: JSON.parse(session.metadata.shippingInfo || "{}"),
-
-        paymentMethod: "Stripe",
-        paymentStatus: "paid",
-        paymentResult: {
-          id: session.payment_intent,
-          status: session.payment_status,
-        },
-
-        totalPrice:
-          Number(session.metadata.totalAmount) || session.amount_total / 100,
-
-        isPaid: true,
-        paidAt: new Date(),
-      });
-
-      await order.save();
-
-      return res.json({
-        success: true,
-        message: "Order stored successfully",
-        order,
-      });
+    if (session.payment_status !== "paid") {
+      return res.json({ success: false, message: "Payment not completed" });
     }
 
-    res.json({ success: false, message: "Payment not completed" });
-  } catch (error) {
-    console.error("Stripe Verify Error:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-};
-
-// -------------------------
-// 🟢 CREATE CASH ON DELIVERY ORDER (COD)  [Step 6]
-// -------------------------
-export const createCashOrder = async (req, res) => {
-  try {
-    // 1. Token verify karo
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ message: "No token provided" });
-    }
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.id;
-
-    // 2. Body se data
-    const { cartItems, shippingInfo, totalAmount } = req.body;
-    if (!cartItems || cartItems.length === 0) {
-      return res.status(400).json({ message: "No items in cart" });
+    // ✅ Check if order already exists
+    const existingOrder = await Order.findOne({ "paymentResult.id": session.payment_intent });
+    if (existingOrder) {
+      return res.json({ success: true, message: "Order already exists", order: existingOrder });
     }
 
-    // 3. Order create karo DB me
     const order = new Order({
-      user: userId,
-
-      orderItems: cartItems.map((i) => ({
+      user: session.metadata.userId,
+      orderItems: JSON.parse(session.metadata.cartItems).map(i => ({
         product: i.id || null,
         name: i.name || "Unknown Product",
         qty: i.qty,
         price: i.price,
         image: i.image || "",
       })),
+      shippingAddress: JSON.parse(session.metadata.shippingInfo || "{}"),
+      paymentMethod: "Stripe",
+      paymentStatus: "paid",
+      paymentResult: {
+        id: session.payment_intent,
+        status: session.payment_status,
+      },
+      totalPrice: Number(session.metadata.totalAmount) || session.amount_total / 100,
+      isPaid: true,
+      paidAt: new Date(),
+    });
 
-      shippingAddress: shippingInfo,
+    await order.save();
 
-      paymentMethod: "COD",
+    return res.json({ success: true, message: "Order stored successfully", order });
+  } catch (error) {
+    console.error("Stripe Verify Error:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+
+// -------------------------
+// 🟢 CREATE CASH ON DELIVERY ORDER (COD)  [Step 6]
+// -------------------------
+export const createCashOrder = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: "No token provided" });
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id;
+
+    const { cartItems, shippingInfo, totalAmount } = req.body;
+
+    console.log(req.body);
+    
+    if (!cartItems || cartItems.length === 0) return res.status(400).json({ message: "No items in cart" });
+
+    // ✅ Duplicate COD check
+    const existingCODOrder = await Order.findOne({
+      user: userId,
+      paymentMethod: "Cash On Delivery",
       paymentStatus: "pending",
-
       totalPrice: totalAmount,
+    });
 
+    if (existingCODOrder) {
+      return res.status(400).json({ success: false, message: "Pending COD order already exists", order: existingCODOrder });
+    }
+
+    // ✅ Map products properly
+    const orderItems = cartItems.map((i) => ({
+      product: i.id || i._id || null, // Save product _id here
+      name: i.name || "Unknown Product",
+      qty: i.qty || i.quantity || 1,
+      price: i.discountPrice && i.discountPrice > 0 ? i.discountPrice : i.price,
+      image: i.image || "",
+    }));
+
+    const order = new Order({
+      user: userId,
+      orderItems,
+      shippingAddress: shippingInfo,
+      paymentMethod: "Cash On Delivery",
+      paymentStatus: "pending",
+      totalPrice: totalAmount,
       isPaid: false,
     });
 
     await order.save();
 
-    res.status(201).json({
-      success: true,
-      message: "Cash On Delivery Order placed successfully",
-      order,
-    });
+    res.status(201).json({ success: true, message: "Cash On Delivery Order placed successfully", order });
   } catch (error) {
     console.error("Cash On Delivery Order Error:", error.message);
     res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+
+
+// @desc    Get logged-in user's payment history
+// @route   GET /api/payment/history
+// @access  Private
+export const getPaymentHistory = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Fetch all orders of this user
+    const orders = await Order.find({ user: userId })
+      .sort({ createdAt: -1 }) // latest first
+      .select('paymentMethod paymentStatus totalPrice createdAt'); // only required fields
+
+    res.status(200).json({ payments: orders });
+  } catch (err) {
+    console.error('Error fetching payment history:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 };

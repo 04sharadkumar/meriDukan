@@ -1,39 +1,38 @@
 import { useEffect, useState } from "react";
-import LeftSideFilter from './LeftSideFilter'
-import {
-  FiChevronDown,
-  FiChevronUp,
-  FiStar,
-  FiFilter,
-  FiSearch,
-} from "react-icons/fi";
+import LeftSideFilter from "./LeftSideFilter";
+import { FiFilter, FiChevronDown, FiStar } from "react-icons/fi";
+import { IoFlashOutline } from "react-icons/io5";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate,useLocation} from "react-router-dom";
 
 const NewSlide = () => {
   const navigate = useNavigate();
   const [product, setProduct] = useState([]);
-
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [sortOpen, setSortOpen] = useState(false);
+  const location = useLocation();
+const searchParams = new URLSearchParams(location.search);
+const searchQuery = searchParams.get("search")?.toLowerCase() || "";
+
+
 
   const [selectedFilters, setSelectedFilters] = useState({
     sortBy: "Relevance",
     category: "",
     gender: "",
-    color: "",
     price: "",
     rating: "",
     discount: "",
   });
 
-  const handleFilterChange = (filterType, value) => {
-    setSelectedFilters((prev) => ({ ...prev, [filterType]: value }));
+  const handleFilterChange = (filters) => {
+    setSelectedFilters((prev) => ({ ...prev, ...filters }));
   };
 
-  // 🔹 Fetch products with pagination
+  // Fetch products
   const fetchProduct = async (pageNum = 1) => {
     try {
       setLoading(true);
@@ -45,14 +44,12 @@ const NewSlide = () => {
         setHasMore(false);
       } else {
         setAllProducts((prev) => {
-  const newItems = res.data.products.filter(
-    (p) => !prev.some((item) => item._id === p._id)
-  );
-  return [...prev, ...newItems];
-});
-
+          const newItems = res.data.products.filter(
+            (p) => !prev.some((item) => item._id === p._id)
+          );
+          return [...prev, ...newItems];
+        });
       }
-
       setLoading(false);
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -65,69 +62,70 @@ const NewSlide = () => {
     fetchProduct(page);
   }, [page]);
 
-  // 🔹 Apply Filters
-  useEffect(() => {
-    let filtered = [...allProducts];
+  // Apply filters
+ useEffect(() => {
+  let filtered = [...allProducts];
 
-    if (selectedFilters.category) {
-      filtered = filtered.filter(
-        (p) => p.category === selectedFilters.category
-      );
-    }
+  // Existing filters
+  if (selectedFilters.category) {
+    filtered = filtered.filter((p) => p.category === selectedFilters.category);
+  }
+  if (selectedFilters.gender) {
+    filtered = filtered.filter((p) => p.gender === selectedFilters.gender);
+  }
+  if (selectedFilters.price) {
+    filtered = filtered.filter((p) => {
+      const price = p.price;
+      switch (selectedFilters.price) {
+        case "Under ₹99": return price < 99;
+        case "₹100-500": return price >= 100 && price <= 500;
+        case "₹500-1000": return price > 500 && price <= 1000;
+        case "Above ₹1000": return price > 1000;
+        default: return true;
+      }
+    });
+  }
+  if (selectedFilters.rating) {
+    filtered = filtered.filter((p) => p.ratings >= parseFloat(selectedFilters.rating));
+  }
+  if (selectedFilters.discount) {
+    filtered = filtered.filter(
+      (p) => parseInt(p.discount?.replace("%","") || "0") >= parseInt(selectedFilters.discount)
+    );
+  }
 
-    if (selectedFilters.gender) {
-      filtered = filtered.filter((p) => p.gender === selectedFilters.gender);
-    }
+  // ✅ SEARCH FILTER
+  if (searchQuery) {
+    filtered = filtered.filter((p) => {
+      const name = p.name.toLowerCase();
+      const category = p.category?.toLowerCase() || "";
+      return name.includes(searchQuery) || category.includes(searchQuery);
+    });
+  }
 
-    if (selectedFilters.price) {
-      filtered = filtered.filter((p) => {
-        const price = p.price;
-        switch (selectedFilters.price) {
-          case "Under ₹99":
-            return price < 99;
-          case "₹100-500":
-            return price >= 100 && price <= 500;
-          case "₹500-1000":
-            return price > 500 && price <= 1000;
-          case "Above ₹1000":
-            return price > 1000;
-          default:
-            return true;
-        }
-      });
-    }
+  // Sorting
+  switch (selectedFilters.sortBy) {
+    case "Price (High to Low)":
+      filtered.sort((a, b) => b.price - a.price);
+      break;
+    case "Price (Low to High)":
+      filtered.sort((a, b) => a.price - b.price);
+      break;
+    case "Ratings":
+      filtered.sort((a, b) => b.ratings - a.ratings);
+      break;
+    case "Discount":
+      filtered.sort((a, b) => parseInt(b.discount) - parseInt(a.discount));
+      break;
+    default:
+      break;
+  }
 
-    if (selectedFilters.rating) {
-      const ratingValue = parseFloat(selectedFilters.rating);
-      filtered = filtered.filter((p) => p.ratings >= ratingValue);
-    }
+  setProduct(filtered);
+}, [selectedFilters, allProducts, searchQuery]); // <-- add searchQuery here
 
-    if (selectedFilters.discount) {
-      const discountValue = parseInt(selectedFilters.discount);
-      filtered = filtered.filter((p) => parseInt(p.discount?.toString().replace("%","") || "0") >= discountValue);
-    }
 
-    switch (selectedFilters.sortBy) {
-      case "Price (High to Low)":
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case "Price (Low to High)":
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case "Ratings":
-        filtered.sort((a, b) => b.ratings - a.ratings);
-        break;
-      case "Discount":
-        filtered.sort((a, b) => parseInt(b.discount) - parseInt(a.discount));
-        break;
-      default:
-        break;
-    }
-
-    setProduct(filtered);
-  }, [selectedFilters, allProducts]);
-
-  // 🔹 Infinite scroll listener
+  // Infinite scroll
   useEffect(() => {
     const handleScroll = () => {
       if (
@@ -144,119 +142,157 @@ const NewSlide = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [loading, hasMore]);
 
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat("en-IN").format(price);
+  };
+
+  const getActiveFiltersCount = () => {
+  return Object.entries(selectedFilters).filter(
+    ([key, value]) => key !== "sortBy" && value !== ""
+  ).length;
+};
+
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">1000+ Products</h1>
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-600">Sort by:</span>
-          <select
-            className="p-2 border rounded-md text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-            value={selectedFilters.sortBy}
-            onChange={(e) => handleFilterChange("sortBy", e.target.value)}
-          >
-            <option value="Relevance">Relevance</option>
-            <option value="New Arrivals">New Arrivals</option>
-            <option value="Price (High to Low)">Price (High to Low)</option>
-            <option value="Price (Low to High)">Price (Low to High)</option>
-            <option value="Ratings">Ratings</option>
-            <option value="Discount">Discount</option>
-          </select>
+    <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      {/* Top bar with Sort & Filter */}
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-lg border-b shadow-sm">
+        <div className="flex items-center justify-between px-6 py-4">
+          <h1 className="text-xl font-bold text-gray-900">
+            {allProducts.length}+ Products
+            {getActiveFiltersCount() > 0 && (
+              <span className="ml-2 text-sm font-normal text-blue-600">
+                ({getActiveFiltersCount()} filter{getActiveFiltersCount() !== 1 ? "s" : ""} applied)
+              </span>
+            )}
+          </h1>
+
+          <div className="flex items-center gap-3">
+            {/* Sort Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setSortOpen(!sortOpen)}
+                className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-white shadow-sm hover:shadow-md transition-all duration-200 hover:border-gray-300"
+              >
+                <span className="text-gray-700">{selectedFilters.sortBy}</span>
+                <FiChevronDown className={`transition-transform duration-200 ${sortOpen ? "rotate-180" : ""}`} />
+              </button>
+              {sortOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                  {["Relevance", "New Arrivals", "Price (High to Low)", "Price (Low to High)", "Ratings", "Discount"].map((option) => (
+                    <div
+                      key={option}
+                      onClick={() => {
+                        setSelectedFilters((prev) => ({ ...prev, sortBy: option }));
+                        setSortOpen(false);
+                      }}
+                      className={`px-4 py-3 text-sm cursor-pointer transition-colors duration-150 hover:bg-blue-50 ${
+                        selectedFilters.sortBy === option
+                          ? "bg-blue-50 text-blue-600 font-semibold border-r-2 border-blue-600"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {option}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Filter Button */}
+            <button
+              onClick={() => navigate("/filter")}
+              className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm bg-blue-600 text-white shadow hover:bg-blue-700 transition"
+            >
+              <FiFilter className="text-base" />
+              Filter
+              {getActiveFiltersCount() > 0 && (
+                <span className="bg-white text-blue-600 text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
+                  {getActiveFiltersCount()}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Left Side - Filters */}
-        <LeftSideFilter />
+      {/* Main Content */}
+      <div className="flex gap-6 px-4 sm:px-6 py-6">
+        {/* Left Filters (Desktop) */}
+        <div className="hidden lg:block w-80 flex-shrink-0">
+          <LeftSideFilter
+            onFilterChange={handleFilterChange}
+            selectedFilters={selectedFilters}
+          />
+        </div>
 
-        {/* Right Side - Products */}
+        {/* Right Products */}
         <div className="flex-1">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {Array.isArray(product) &&
-              product.map((product, index) => (
-                <div
-                  key={index}
-                  onClick={() => navigate(`/productDetail?id=${product._id}`)}
-                  className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-all hover:-translate-y-0.5"
-                >
-                  {/* Product Image */}
-                  <div className="relative">
-                    <img
-                      src={
-                        product.images?.[0].url ||
-                        "https://via.placeholder.com/300x200?text=No+Image"
-                      }
-                      alt={product.name}
-                      className="h-48 w-full object-cover rounded-md mb-3"
-                    />
-                    {product.isTrending && (
-                      <span className="absolute top-2 left-2 bg-orange-500 text-white text-xs px-2 py-1 rounded">
-                        Trending
-                      </span>
-                    )}
-                    {product.isMall && (
-                      <span className="absolute top-2 left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded">
-                        Mall
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Product Info */}
-                  <h3 className="font-medium text-gray-800 mb-1.5 line-clamp-2">
-                    {product.name}
-                  </h3>
-
-                  {/* Price */}
-                  <div className="flex items-center mb-1.5">
-                    <span className="text-lg font-bold text-gray-900">
-                      ₹{product.discountPrice}
-                    </span>
-                    <span className="text-xs text-gray-500 line-through ml-2">
-                      {product.price}
-                    </span>
-                    <span className="text-xs text-green-600 ml-2 bg-green-50 px-1 py-0.5 rounded">
-                      {product.discount}
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
+            {product.map((p) => (
+              <div
+                key={p._id}
+                onClick={() => navigate(`/productDetail?id=${p._id}`)}
+                className="group bg-white rounded-2xl border border-gray-100 hover:border-transparent hover:shadow-2xl transition-all duration-300 cursor-pointer flex flex-col transform hover:-translate-y-2 relative overflow-hidden"
+              >
+                {/* Discount Badge */}
+                {p.discount && (
+                  <div className="absolute top-3 left-3 z-10">
+                    <span className="flex items-center gap-1 bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-full shadow-lg">
+                      <IoFlashOutline className="text-sm" />
+                      {p.discount}% OFF
                     </span>
                   </div>
+                )}
+
+                {/* Product Image */}
+                <div className="relative overflow-hidden bg-gray-50 rounded-t-2xl">
+                  <img
+                    src={p.images?.[0]?.url || "https://via.placeholder.com/300x200"}
+                    alt={p.name}
+                    className="h-48 w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+
+                {/* Product Info */}
+                <div className="flex flex-col flex-1 p-4">
+                  <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 mb-2 leading-tight">{p.name}</h3>
 
                   {/* Rating */}
-                  <div className="flex items-center mb-2">
-                    <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <svg
-                          key={star}
-                          className={`w-5 h-5 ${
-                            star <= product.averageRating
-                              ? "text-yellow-400"
-                              : "text-gray-300"
-                          }`}
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      ))}
+                  <div className="flex items-center gap-1 mb-3">
+                    <div className="flex items-center gap-1 bg-green-50 px-2 py-1 rounded-full">
+                      <FiStar className="text-green-600 text-xs fill-current" />
+                      <span className="text-xs font-semibold text-green-700">{p.averageRating}</span>
                     </div>
-                    <span className="text-gray-600">
-                      {product.averageRating} ({product.numReviews} reviews)
-                    </span>
+                    <span className="text-gray-500 text-xs">({p.numReviews || 0})</span>
+                  </div>
+
+                  {/* Price Section */}
+                  <div className="flex items-center justify-between mt-auto">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold text-gray-900">₹{formatPrice(p.discountPrice || p.price)}</span>
+                      {p.discount && <span className="text-gray-500 line-through text-sm">₹{formatPrice(p.price)}</span>}
+                    </div>
                   </div>
                 </div>
-              ))}
+              </div>
+            ))}
           </div>
 
-          {/* 🔹 Loader */}
+          {/* Loader */}
           {loading && (
-            <div className="flex justify-center mt-6">
-              <div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex justify-center mt-8 py-8">
+              <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
             </div>
           )}
 
-          {/* 🔹 No more products */}
-          {!hasMore && (
-            <p className="text-center text-gray-500 mt-6">
-              No more products available
-            </p>
+          {/* No more products */}
+          {!hasMore && product.length > 0 && (
+            <div className="text-center py-8 text-gray-500">You've reached the end!</div>
+          )}
+
+          {/* Empty State */}
+          {!loading && product.length === 0 && (
+            <div className="text-center py-16 text-gray-500">No products found</div>
           )}
         </div>
       </div>

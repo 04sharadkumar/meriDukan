@@ -1,93 +1,135 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { FiX } from "react-icons/fi";
 
-const LeftSideFilter = ({ onFilterChange }) => {
+const LeftSideFilter = ({ onFilterChange, onClose }) => {
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedPrice, setSelectedPrice] = useState([0, 2000]);
-  const [selectedRating, setSelectedRating] = useState(null);
+  const [selectedPrice, setSelectedPrice] = useState("");
+  const [selectedRating, setSelectedRating] = useState("");
+  const [selectedDiscount, setSelectedDiscount] = useState("");
 
   const categories = ["Men", "Women", "Kids", "Accessories"];
-  const ratings = [5, 4, 3, 2, 1];
+  const prices = ["Under ₹99", "₹100-500", "₹500-1000", "Above ₹1000"];
+  const ratings = ["4", "3", "2", "1"];
+  const discounts = ["10", "20", "30", "40", "50"];
 
-  // Handle filter change
   const applyFilter = () => {
     onFilterChange({
       category: selectedCategory,
       price: selectedPrice,
       rating: selectedRating,
+      discount: selectedDiscount,
     });
+    if (onClose) onClose();
   };
 
   return (
-    <aside className="hidden lg:block w-64 bg-white rounded-xl shadow-md p-5 sticky top-20 h-fit">
-      <h2 className="text-lg font-bold text-blue-700 mb-4">Filters</h2>
+    <aside className="w-64 bg-white h-full border-r shadow-sm p-4 relative">
+      {/* Close button (mobile) */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-600 hover:text-black"
+        >
+          <FiX size={22} />
+        </button>
+      )}
 
-      {/* Category Filter */}
-      <div className="mb-6">
+      <h2 className="text-base font-semibold text-gray-800 mb-4">Filters</h2>
+
+      {/* Category */}
+      <div className="mb-5">
         <h3 className="text-sm font-semibold text-gray-700 mb-2">Category</h3>
         <ul className="space-y-2">
           {categories.map((cat) => (
             <li key={cat}>
-              <label className="flex items-center space-x-2 cursor-pointer">
+              <label className="flex items-center space-x-2 text-gray-700">
                 <input
                   type="radio"
                   name="category"
                   value={cat}
                   checked={selectedCategory === cat}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="text-blue-600 focus:ring-blue-500"
+                  className="accent-blue-600"
                 />
-                <span className="text-gray-600">{cat}</span>
+                <span>{cat}</span>
               </label>
             </li>
           ))}
         </ul>
       </div>
 
-      {/* Price Filter */}
-      <div className="mb-6">
+      {/* Price */}
+      <div className="mb-5">
         <h3 className="text-sm font-semibold text-gray-700 mb-2">Price</h3>
-        <input
-          type="range"
-          min="0"
-          max="5000"
-          step="100"
-          value={selectedPrice[1]}
-          onChange={(e) => setSelectedPrice([0, parseInt(e.target.value)])}
-          className="w-full accent-blue-600"
-        />
-        <p className="text-sm text-gray-600 mt-2">
-          ₹{selectedPrice[0]} - ₹{selectedPrice[1]}
-        </p>
+        <ul className="space-y-2">
+          {prices.map((p) => (
+            <li key={p}>
+              <label className="flex items-center space-x-2 text-gray-700">
+                <input
+                  type="radio"
+                  name="price"
+                  value={p}
+                  checked={selectedPrice === p}
+                  onChange={(e) => setSelectedPrice(e.target.value)}
+                  className="accent-blue-600"
+                />
+                <span>{p}</span>
+              </label>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      {/* Rating Filter */}
-      <div className="mb-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">Customer Rating</h3>
-        <ul className="space-y-1">
-          {ratings.map((rate) => (
-            <li key={rate}>
-              <label className="flex items-center space-x-2 cursor-pointer">
+      {/* Rating */}
+      <div className="mb-5">
+        <h3 className="text-sm font-semibold text-gray-700 mb-2">Rating</h3>
+        <ul className="space-y-2">
+          {ratings.map((r) => (
+            <li key={r}>
+              <label className="flex items-center space-x-2 text-gray-700">
                 <input
                   type="radio"
                   name="rating"
-                  value={rate}
-                  checked={selectedRating === rate}
-                  onChange={(e) => setSelectedRating(parseInt(e.target.value))}
-                  className="text-blue-600 focus:ring-blue-500"
+                  value={r}
+                  checked={selectedRating === r}
+                  onChange={(e) => setSelectedRating(e.target.value)}
+                  className="accent-blue-600"
                 />
-                <span className="text-gray-600">& {rate} ★ & above</span>
+                <span>{r}★ & above</span>
               </label>
             </li>
           ))}
         </ul>
       </div>
 
-      {/* Apply Button */}
+      {/* Discount */}
+      <div className="mb-5">
+        <h3 className="text-sm font-semibold text-gray-700 mb-2">Discount</h3>
+        <ul className="space-y-2">
+          {discounts.map((d) => (
+            <li key={d}>
+              <label className="flex items-center space-x-2 text-gray-700">
+                <input
+                  type="radio"
+                  name="discount"
+                  value={d}
+                  checked={selectedDiscount === d}
+                  onChange={(e) => setSelectedDiscount(e.target.value)}
+                  className="accent-blue-600"
+                />
+                <span>{d}% or more</span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Apply button */}
       <button
         onClick={applyFilter}
-        className="w-full bg-blue-600 text-white py-2 rounded-lg shadow hover:bg-blue-700 transition"
+        className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
       >
-        Apply Filters
+        Apply
       </button>
     </aside>
   );

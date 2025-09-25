@@ -24,6 +24,7 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import { BsThreeDotsVertical } from "react-icons/bs";
+import { BiRupee } from "react-icons/bi";
 
 const RevenueTab = () => {
   const [orders, setOrders] = useState([]);
@@ -65,8 +66,8 @@ const RevenueTab = () => {
           }
         );
 
-        console.log();
-        
+        console.log(data);
+
         setOrders(data.orders || []);
         setLoading(false);
       } catch (err) {
@@ -122,16 +123,10 @@ const RevenueTab = () => {
     // Top products
     const topProducts = calculateTopProducts(filteredOrders);
 
-    
-    
-    
-
-
     // Customer segments (simplified)
-   const calculateCustomerSegments = (orders) => {
+ const calculateCustomerSegments = (orders) => {
   const customerOrderCount = {};
 
-  // Count orders per customer
   orders.forEach((order) => {
     const userId = order.user?._id || order.user || "guest";
     customerOrderCount[userId] = (customerOrderCount[userId] || 0) + 1;
@@ -154,8 +149,9 @@ const RevenueTab = () => {
   ];
 };
 
-// Usage
-const customerSegments = calculateCustomerSegments(filteredOrders);
+
+    // Usage
+    const customerSegments = calculateCustomerSegments(filteredOrders);
 
     return {
       totalRevenue: parseFloat(totalRevenue.toFixed(2)),
@@ -170,64 +166,104 @@ const customerSegments = calculateCustomerSegments(filteredOrders);
     };
   };
 
-const calculateRevenueTrend = (orders) => {
-  const months = [];
-  const now = new Date();
+  const calculateRevenueTrend = (orders) => {
+    const months = [];
+    const now = new Date();
 
-  for (let i = 11; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({
-      name: date.toLocaleString("default", { month: "short" }),
-      year: date.getFullYear(),
-      revenue: 0,
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        name: date.toLocaleString("default", { month: "short" }),
+        year: date.getFullYear(),
+        revenue: 0,
+      });
+    }
+
+    orders.forEach((order) => {
+      const orderDate = new Date(order.createdAt);
+      const monthIndex =
+        (orderDate.getFullYear() - now.getFullYear()) * 12 +
+        orderDate.getMonth() -
+        now.getMonth() +
+        11;
+
+      if (monthIndex >= 0 && monthIndex < 12) {
+        const orderTotal = order.orderItems.reduce(
+          (sum, item) =>
+            sum + (Number(item.price) || 0) * (Number(item.qty) || 0), // ✅ fixed here
+          0
+        );
+        months[monthIndex].revenue += orderTotal;
+      }
+    });
+
+    return months;
+  };
+
+  const calculateTopProducts = (orders) => {
+    const productMap = {};
+
+    orders.forEach((order) => {
+      (order.orderItems || []).forEach((item) => {
+        const price = Number(item.price) || 0;
+        const qty = Number(item.qty) || 0;
+
+        if (!productMap[item.name]) {
+          productMap[item.name] = {
+            name: item.name,
+            revenue: 0,
+            unitsSold: 0,
+          };
+        }
+
+        productMap[item.name].revenue += price * qty;
+        productMap[item.name].unitsSold += qty;
+      });
+    });
+
+    return Object.values(productMap)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+  };
+
+const exportReport = () => {
+  const headers = ["Order ID", "Customer", "Amount", "Date", "Status"];
+
+  let filteredOrders = orders;
+
+  if (startDate && endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999); // include the whole end day
+
+    filteredOrders = orders.filter((order) => {
+      const orderDate = new Date(order.createdAt);
+      return orderDate >= start && orderDate <= end;
     });
   }
 
-  orders.forEach((order) => {
-    const orderDate = new Date(order.createdAt);
-    const monthIndex =
-      (orderDate.getFullYear() - now.getFullYear()) * 12 +
-      orderDate.getMonth() -
-      now.getMonth() +
-      11;
+  const rows = filteredOrders.map((order) => [
+    `"${order._id}"`,
+    `"${order.user?.email || "Guest"}"`,
+    `"${order.totalPrice.toFixed(2)}"`,
+    `"${order.createdAt ? new Date(order.createdAt).toISOString().split("T")[0] : "N/A"}"`,
+    `"${order.paymentStatus}"`,
+  ]);
 
-    if (monthIndex >= 0 && monthIndex < 12) {
-      const orderTotal = order.orderItems.reduce(
-        (sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 0), // ✅ fixed here
-        0
-      );
-      months[monthIndex].revenue += orderTotal;
-    }
-  });
+  const csvContent =
+    "data:text/csv;charset=utf-8," +
+    [headers.map((h) => `"${h}"`), ...rows].map((e) => e.join(",")).join("\n");
 
-  return months;
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "orders_report.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 
-const calculateTopProducts = (orders) => {
-  const productMap = {};
 
-  orders.forEach((order) => {
-    (order.orderItems || []).forEach((item) => {
-      const price = Number(item.price) || 0;
-      const qty = Number(item.qty) || 0;
-
-      if (!productMap[item.name]) {
-        productMap[item.name] = {
-          name: item.name,
-          revenue: 0,
-          unitsSold: 0,
-        };
-      }
-
-      productMap[item.name].revenue += price * qty;
-      productMap[item.name].unitsSold += qty;
-    });
-  });
-
-  return Object.values(productMap)
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 5);
-};
 
 
   return (
@@ -248,7 +284,9 @@ const calculateTopProducts = (orders) => {
               placeholderText="Select date range"
               className="border rounded-md px-3 py-1 text-sm"
             />
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
+            <button
+            onClick={exportReport}
+             className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
               Export Report
             </button>
           </div>
@@ -259,7 +297,7 @@ const calculateTopProducts = (orders) => {
       <nav className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
-            {["overview", "products", "customers", "channels"].map((tab) => (
+            {["overview"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -289,7 +327,7 @@ const calculateTopProducts = (orders) => {
                 title="Total Revenue"
                 value={`₹${metrics.totalRevenue.toLocaleString()}`}
                 change={metrics.yoyGrowth}
-                icon={<FiDollarSign className="text-blue-500" size={24} />}
+                icon={<BiRupee className="text-blue-500" size={24} />}
               />
               <MetricCard
                 title="Orders"
@@ -348,7 +386,7 @@ const calculateTopProducts = (orders) => {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <Tooltip
                         formatter={(value) => [
-                          `$${value.toLocaleString()}`,
+                          `₹${value.toLocaleString()}`,
                           "Revenue",
                         ]}
                         labelFormatter={(label) => `Month: ${label}`}
@@ -431,7 +469,7 @@ const calculateTopProducts = (orders) => {
                         </th>
                       </tr>
                     </thead>
-                    
+
                     <tbody className="bg-white divide-y divide-gray-200">
                       {metrics.topProducts.map((product) => (
                         <tr key={product.name}>
@@ -495,17 +533,18 @@ const calculateTopProducts = (orders) => {
                             {order.user?.email || "Guest"}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                            ₹
-                            {order.orderItems
-                              .reduce(
-                                (sum, item) => sum + item.price * item.quantity,
-                                0
-                              )
-                              .toFixed(2)}
+                            ₹{order.totalPrice.toFixed(2)}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                              Completed
+                            <span
+                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                order.paymentStatus === "paid"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                              }`}
+                            >
+                              {order.paymentStatus?.charAt(0).toUpperCase() +
+                                order.paymentStatus?.slice(1)}
                             </span>
                           </td>
                         </tr>
