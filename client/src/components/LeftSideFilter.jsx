@@ -7,9 +7,42 @@ const LeftSideFilter = ({ onFilterChange, onClose }) => {
   const [selectedRating, setSelectedRating] = useState("");
   const [selectedDiscount, setSelectedDiscount] = useState("");
 
-  const categories = ["Men", "Women", "Kids", "Accessories"];
-  const prices = ["Under ₹99", "₹100-500", "₹500-1000", "Above ₹1000"];
-  const ratings = ["4", "3", "2", "1"];
+  const categories = [
+  "Men",
+  "Women",
+  "Kids",
+  "Accessories",
+  "Footwear",
+  "Beauty & Personal Care",
+  "Electronics",
+  "Home & Living",
+  "Sports & Fitness",
+  "Toys & Games",
+  "Jewellery",
+  "Bags & Luggage",
+];
+  const prices = [
+  "Under ₹99",
+  "₹100 - ₹499",
+  "₹500 - ₹999",
+  "₹1000 - ₹1999",
+  "₹2000 - ₹2999",
+  "₹3000 - ₹4999",
+  "₹5000 - ₹9999",
+  "₹10000 - ₹19999",
+  "₹20000 & Above",
+];
+  const ratings = [
+  "5 ★",
+  "4.5 ★ & above",
+  "4 ★ & above",
+  "3.5 ★ & above",
+  "3 ★ & above",
+  "2.5 ★ & above",
+  "2 ★ & above",
+  "1 ★ & above",
+];
+
   const discounts = ["10", "20", "30", "40", "50"];
 
   const applyFilter = () => {

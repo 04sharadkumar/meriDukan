@@ -38,12 +38,18 @@ import NotFound from './pages/NotFound';
 import SuccessPage from './pages/SuccessPage'
 import AdminBannerPage from './pages/AdminBannerPage';
 
+import Filter from './components/Filter';
+
 function App() {
   return (
     < >
+
       <Toaster position="top-right" />
+
       <Header />
+
       <Routes>
+
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
@@ -63,27 +69,26 @@ function App() {
        <Route path="/admin/banners" element={<ProtectedAdminRoute><AdminBannerPage /></ProtectedAdminRoute>} />
 
 
-
-
         {/* ✅ Protected Routes */}
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>}>
         
 
-
         <Route index element={<AccountSettingsTab />} />
 
         
-
-
         <Route path="orders" element={<OrdersTab />} />
         <Route path="wishlist" element={<WishlistTab />} />
         <Route path="paymentHistory" element={<PaymentHistory />} />
         <Route path="account-settings" element={<AccountSettingsTab />} />
+       
+
         
         </Route>
 
         <Route path="/wishlist" element={  <Wishlist />} />
         <Route path="/success" element={  <SuccessPage />} />
+        <Route path="/filter" element={  <Filter />} />
+
 
 
 

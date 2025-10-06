@@ -7,10 +7,12 @@ import Catageory from "./Home/Catageory";
 const HomePage = () => {
   return (
     <div className="min-h-screen bg-gray-200 font-sans">
+
+       {/* Hero Banner Carousel */}
+        <Banner />
       <main className="container mx-auto px-4 py-6">
         
-        {/* Hero Banner Carousel */}
-        <Banner />
+       
 
         {/* Categories - 3D Tilt Effect */}
 

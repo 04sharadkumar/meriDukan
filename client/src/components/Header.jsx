@@ -1,10 +1,10 @@
-import React from "react";
+
 import {
   FiUser,
   FiHeart,
   FiShoppingCart,
 } from "react-icons/fi";
-import { FaStore } from "react-icons/fa"; // 🏬 shop icon
+
 import { Link } from "react-router-dom";
 import { useWishlist } from "../context/WishlistContext";
 import { useCart } from "../context/CartContext";
@@ -18,6 +18,7 @@ function Header() {
     <header className="bg-white sticky top-0 shadow-md z-50">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
+
           {/* ✅ Logo and Shop icon for mobile */}
           <div className="flex items-center space-x-2">
             <Link to="/" className="flex items-center space-x-1">
@@ -25,6 +26,7 @@ function Header() {
               
               <h1 className="text-2xl font-bold text-blue-600 sm:hidden">T&M</h1>
               {/* Shop Icon */}
+              
               
             </Link>
 

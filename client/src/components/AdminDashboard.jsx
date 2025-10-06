@@ -212,8 +212,7 @@ const AdminDashboard = () => {
         }
       </div>
 
-      {/* Recent Orders */}
-      <RecentOrder recentOrders={recentOrders} />
+     
 
       {/* Export Button */}
       <div className="flex justify-end my-6">
@@ -228,4 +227,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default AdminDashboard

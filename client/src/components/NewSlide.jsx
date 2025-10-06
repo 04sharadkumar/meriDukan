@@ -6,6 +6,7 @@ import axios from "axios";
 import { useNavigate,useLocation} from "react-router-dom";
 
 const NewSlide = () => {
+
   const navigate = useNavigate();
   const [product, setProduct] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
@@ -14,9 +15,8 @@ const NewSlide = () => {
   const [hasMore, setHasMore] = useState(true);
   const [sortOpen, setSortOpen] = useState(false);
   const location = useLocation();
-const searchParams = new URLSearchParams(location.search);
-const searchQuery = searchParams.get("search")?.toLowerCase() || "";
-
+  const searchParams = new URLSearchParams(location.search);
+  const searchQuery = searchParams.get("search")?.toLowerCase() || "";
 
 
   const [selectedFilters, setSelectedFilters] = useState({

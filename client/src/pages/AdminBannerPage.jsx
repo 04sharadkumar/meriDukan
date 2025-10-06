@@ -1,11 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 
 const AdminBannerPage = () => {
   const [banners, setBanners] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [editId, setEditId] = useState(null);
+
+  // New text fields
+  const [title, setTitle] = useState("");
+  const [subtitle, setSubtitle] = useState("");
 
   // Fetch banners from backend
   const fetchBanners = async () => {
@@ -22,31 +28,49 @@ const AdminBannerPage = () => {
     fetchBanners();
   }, []);
 
-  // Handle file selection
+  // Handle file selection + preview
   const handleFileChange = (e) => {
-    setSelectedFile(e.target.files[0]);
+    const file = e.target.files[0];
+    setSelectedFile(file);
+    if (file) {
+      setPreviewUrl(URL.createObjectURL(file));
+    }
   };
 
-  // Upload new banner
+  // Upload or update banner
   const handleUpload = async () => {
-    if (!selectedFile) {
-      toast.error("Please select a file");
+    if (!title || !subtitle) {
+      toast.error("Please fill in title and subtitle");
       return;
     }
+
     const formData = new FormData();
-    formData.append("image", selectedFile);
+    if (selectedFile) formData.append("image", selectedFile);
+    formData.append("title", title);
+    formData.append("subtitle", subtitle);
 
     try {
       setLoading(true);
-      await axios.post("http://localhost:5000/api/admin/banners", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      toast.success("Banner added!");
-      setSelectedFile(null);
+      if (editId) {
+        await axios.put(
+          `http://localhost:5000/api/admin/banners/${editId}`,
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+        toast.success("Banner updated!");
+      } else {
+        await axios.post("http://localhost:5000/api/admin/banners", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        toast.success("Banner added!");
+      }
+
+      // Reset state
+      resetForm();
       fetchBanners();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to add banner");
+      toast.error("Failed to save banner");
     } finally {
       setLoading(false);
     }
@@ -64,53 +88,87 @@ const AdminBannerPage = () => {
     }
   };
 
-  // Optional: Edit banner image
-  const handleEdit = async (id) => {
-    if (!selectedFile) {
-      toast.error("Select a new image to update");
-      return;
-    }
-    const formData = new FormData();
-    formData.append("image", selectedFile);
+  // Enter edit mode
+  const handleEditClick = (banner) => {
+    setEditId(banner._id);
+    setPreviewUrl(banner.imageUrl);
+    setTitle(banner.title || "");
+    setSubtitle(banner.subtitle || "");
+    setSelectedFile(null);
+  };
 
-    try {
-      setLoading(true);
-      await axios.put(
-        `http://localhost:5000/api/admin/banners/${id}`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
-      toast.success("Banner updated!");
-      setSelectedFile(null);
-      fetchBanners();
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to update banner");
-    } finally {
-      setLoading(false);
-    }
+  // Cancel edit
+  const handleCancelEdit = () => {
+    resetForm();
+  };
+
+  // Reset form
+  const resetForm = () => {
+    setEditId(null);
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setTitle("");
+    setSubtitle("");
   };
 
   return (
     <div className="p-8 bg-gray-100 min-h-screen">
       <h1 className="text-3xl font-bold mb-6">Manage Homepage Banners</h1>
 
-      {/* Upload New Banner */}
-      <div className="bg-white p-6 rounded shadow mb-8 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+      {/* Upload/Edit Banner */}
+      <div className="bg-white p-6 rounded shadow mb-8 flex flex-col gap-4">
         <input
           type="file"
           onChange={handleFileChange}
           className="border p-2 rounded"
         />
-        <button
-          onClick={handleUpload}
-          disabled={loading}
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
-        >
-          {loading ? "Uploading..." : "Add New Banner"}
-        </button>
+        {previewUrl && (
+          <img
+            src={previewUrl}
+            alt="Preview"
+            className="h-24 w-48 object-cover rounded border"
+          />
+        )}
+
+        {/* Title input */}
+        <input
+          type="text"
+          placeholder="Banner Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="border p-2 rounded w-full"
+        />
+
+        {/* Subtitle input */}
+        <textarea
+          placeholder="Banner Subtitle / Description"
+          value={subtitle}
+          onChange={(e) => setSubtitle(e.target.value)}
+          className="border p-2 rounded w-full"
+          rows="2"
+        ></textarea>
+
+        <div className="flex gap-2">
+          <button
+            onClick={handleUpload}
+            disabled={loading}
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
+          >
+            {loading
+              ? "Saving..."
+              : editId
+              ? "Update Banner"
+              : "Add New Banner"}
+          </button>
+          {editId && (
+            <button
+              onClick={handleCancelEdit}
+              className="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500 transition"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Existing Banners */}
@@ -125,9 +183,13 @@ const AdminBannerPage = () => {
               alt="Banner"
               className="w-full h-48 object-cover"
             />
+            <div className="p-3">
+              <h3 className="font-bold text-gray-800">{banner.title}</h3>
+              <p className="text-gray-600 text-sm">{banner.subtitle}</p>
+            </div>
             <div className="absolute top-2 right-2 flex gap-2">
               <button
-                onClick={() => handleEdit(banner._id)}
+                onClick={() => handleEditClick(banner)}
                 className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 transition"
               >
                 Edit

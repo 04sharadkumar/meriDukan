@@ -15,6 +15,7 @@ import couponRoutes from "./routes/couponRoutes.js";
 import otpRoutes from "./routes/otpRoutes.js";
 import reviewRoutes from './routes/reviewRoutes.js';
 import addressRoutes  from './routes/addressRoutes.js'
+import bannerRoutes from "./routes/bannerRoutes.js";
 
 dotenv.config(); // ✅ Load .env before using it
 connectDB(); // ✅ Call only after dotenv.config()
@@ -58,6 +59,8 @@ app.use("/api/save-address", addressRoutes );
 
 
 app.use("/api/review",reviewRoutes);
+
+app.use("/api/admin/banners", bannerRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
