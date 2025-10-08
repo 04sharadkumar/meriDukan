@@ -5,30 +5,39 @@ import {
   getAllOrders,
   getRecentOrders,
   createOrder,
-  placeCashOrder
+  placeCashOrder,
+  updateOrderStatus,
+  updateDeliveryStatus
 } from "../controllers/orderController.js";
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
+// -------------------- USER ROUTES --------------------
+// Place a new order
+router.post("/place", protect, placeOrder);
 
-// User routes
-router.post("/place", protect, placeOrder);  //Done
+// Get orders of logged-in user
+router.get("/my-orders", protect, getMyOrders);
 
-router.get("/my-orders", protect, getMyOrders);  //Done
-
-router.get('/totalOrder',getRecentOrders);
-
-router.get('/getRecentOrders',getRecentOrders);
-
-// Admin routes
-router.get("/admin/all", protect, adminOnly, getAllOrders);
-
-
-
-router.post("/create", protect, createOrder);
-
+// Place cash-on-delivery order
 router.post("/cash", protect, placeCashOrder);
 
+// Create order (admin or custom)
+router.post("/create", protect, createOrder);
+
+// Get recent orders (admin or dashboard)
+router.get("/totalOrder", protect, adminOnly, getRecentOrders);
+router.get("/getRecentOrders", protect, adminOnly, getRecentOrders);
+
+// -------------------- ADMIN ROUTES --------------------
+// Get all orders
+router.get("/getAllOrders", protect, adminOnly, getAllOrders);
+
+// Update order payment/status
+router.put("/updateOrderStatus/:orderId", protect, adminOnly, updateOrderStatus);
+
+// Update delivery status
+router.put("/updateDelivery/:deliveryId", protect, adminOnly, updateDeliveryStatus);
 
 export default router;

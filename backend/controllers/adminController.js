@@ -210,14 +210,6 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-
-
 export const deleteProduct = async (req, res) => {
   try {
     const id = req.params.id.trim();
@@ -237,7 +229,6 @@ export const deleteProduct = async (req, res) => {
     res.status(500).json({ error: 'Server error. Could not delete product.' });
   }
 };
-
 
 export const getAdminDashboardStats = async (req, res) => {
   try {
@@ -274,8 +265,6 @@ export const getAdminDashboardStats = async (req, res) => {
   }
 };
 
-
-
 export const totalUser  = async(req,res)=>{
 
 
@@ -294,8 +283,6 @@ export const totalUser  = async(req,res)=>{
     
   }
 }
-
-
 
 export const exportOrdersToExcel = async (req, res) => {
   try {
@@ -436,7 +423,6 @@ export const getAdminStats = async (req, res) => {
   }
 };
 
-
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select('-password'); // exclude password
@@ -453,7 +439,6 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-
 export const deleteUser = async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
@@ -463,18 +448,6 @@ export const deleteUser = async (req, res) => {
   }}
 
 
-export const getAllOrders = async (req, res) => {
-  try {
-    const orders = await Order.find()
-      .populate('user', 'username email') // optional: shows user info
-      .sort({ createdAt: -1 });
-
-    res.status(200).json({ success: true, orders });
-  } catch (err) {
-    console.error('Error fetching orders:', err);
-    res.status(500).json({ success: false, message: 'Server error while fetching orders' });
-  }
-};
 
 
 

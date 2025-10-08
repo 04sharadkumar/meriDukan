@@ -1,53 +1,42 @@
-// models/Order.js
 import mongoose from "mongoose";
+import Delivery from "./deliveryModel.js"; 
 
 const orderSchema = new mongoose.Schema(
   {
-    // 🧑‍💻 User
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
-    // 🛒 Items (Detailed + Simple merge)
     orderItems: [
       {
-        product: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Product",
-        },
-        name: String, // for simple order
+        product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+        name: String,
         qty: { type: Number, default: 1 },
         price: { type: Number, required: true },
         image: String,
       },
     ],
 
-    // 📍 Address (Detailed + Simple merge)
     shippingAddress: {
-      name: String, // from 2nd schema
-      mobile: String, // from 2nd schema
+      name: String,
+      mobile: String,
       address: { type: String, required: true },
       city: { type: String, required: true },
       state: String,
       country: { type: String, default: "India" },
-      postalCode: String, // (pincode)
+      postalCode: String,
     },
 
-    // 💳 Payment
     paymentMethod: {
       type: String,
-      enum: ["Cash On Delivery","COD", "Razorpay", "Stripe", "upi", "card", "cash"],
+      enum: ["Cash On Delivery", "COD", "Razorpay", "Stripe", "upi", "card", "cash"],
       required: true,
     },
+
     paymentStatus: {
       type: String,
-      enum: ["pending", "paid", "failed"],
+      enum: ["pending", "paid", "failed"],  // ALWAYS lowercase
       default: "pending",
     },
 
-    // 🔐 Payment result (for online)
     paymentResult: {
       id: String,
       status: String,
@@ -55,17 +44,22 @@ const orderSchema = new mongoose.Schema(
       email_address: String,
     },
 
-    // 💰 Price / Amount
-    totalPrice: { type: Number, required: true }, // for 1st schema
-    totalAmount: { type: Number }, // for 2nd schema (optional)
+    totalPrice: { type: Number, required: true },
+    totalAmount: { type: Number },
 
-    // 📦 Order Tracking
     isPaid: { type: Boolean, default: false },
     paidAt: Date,
     isDelivered: { type: Boolean, default: false },
-    deliveredAt: Date,
+    orderStatus: { type: String, default: "Processing" },
+
+    delivery: { type: mongoose.Schema.Types.ObjectId, ref: "Delivery" },
   },
   { timestamps: true }
 );
+
+orderSchema.pre("remove", async function (next) {
+  if (this.delivery) await Delivery.findByIdAndDelete(this.delivery);
+  next();
+});
 
 export default mongoose.models.Order || mongoose.model("Order", orderSchema);

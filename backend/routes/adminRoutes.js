@@ -1,6 +1,8 @@
 import express from "express";
 
-import {addProduct,updateProduct,deleteProduct,getAdminDashboardStats,totalUser ,getAdminStats,exportOrdersToExcel,getTotalRevenue,deleteUser,getAllOrders } from "../controllers/adminController.js";
+import {addProduct,updateProduct,deleteProduct,getAdminDashboardStats,totalUser ,getAdminStats,exportOrdersToExcel,getTotalRevenue,deleteUser } from "../controllers/adminController.js";
+
+import { getAllOrders } from "../controllers/orderController.js";
 
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
