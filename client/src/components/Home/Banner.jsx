@@ -2,15 +2,16 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const Banner = () => {
-  // Default fallback banners
   const fallbackBanners = [
     {
-      imageUrl: "https://via.placeholder.com/1600x600.png?text=Default+Banner+1",
+      mobileImage: "https://via.placeholder.com/800x600.png?text=Default+Banner+1+Mobile",
+      desktopImage: "https://via.placeholder.com/1600x600.png?text=Default+Banner+1+Desktop",
       title: "Default Title 1",
       subtitle: "Default Subtitle 1",
     },
     {
-      imageUrl: "https://via.placeholder.com/1600x600.png?text=Default+Banner+2",
+      mobileImage: "https://via.placeholder.com/800x600.png?text=Default+Banner+2+Mobile",
+      desktopImage: "https://via.placeholder.com/1600x600.png?text=Default+Banner+2+Desktop",
       title: "Default Title 2",
       subtitle: "Default Subtitle 2",
     },
@@ -18,20 +19,32 @@ const Banner = () => {
 
   const [banners, setBanners] = useState(fallbackBanners);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Update screen size dynamically
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Fetch banners from backend
   useEffect(() => {
     const fetchBanners = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/admin/banners"); // 👈 update URL if needed
-
-        console.log(res.data);
-
+        const res = await axios.get("http://localhost:5000/api/admin/banners");
         if (res.data && res.data.banners.length > 0) {
-          setBanners(res.data.banners); // use backend banners
+          // Make sure backend provides mobileImage & desktopImage
+          const formattedBanners = res.data.banners.map((b) => ({
+            mobileImage: b.mobileImage || b.imageUrl,
+            desktopImage: b.desktopImage || b.imageUrl,
+            title: b.title,
+            subtitle: b.subtitle,
+          }));
+          setBanners(formattedBanners);
         }
       } catch (err) {
-        console.warn("⚠️ Using fallback banners (network issue):", err.message);
+        console.warn("⚠️ Using fallback banners:", err.message);
         setBanners(fallbackBanners);
       }
     };
@@ -56,7 +69,7 @@ const Banner = () => {
         {banners.map((banner, index) => (
           <img
             key={index}
-            src={banner.imageUrl}
+            src={isMobile ? banner.mobileImage : banner.desktopImage}
             alt={`Slide ${index + 1}`}
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
               index === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0"

@@ -59,3 +59,4 @@ export const validateCoupon = async (req, res) => {
     res.status(500).json({ message: "Coupon validation failed", error: err.message });
   }
 };
+

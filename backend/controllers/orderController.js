@@ -1,6 +1,5 @@
 import Stripe from "stripe";
 import mongoose from "mongoose";
-import jwt from "jsonwebtoken";
 import Order from "../models/orderModel.js";
 import Delivery from "../models/deliveryModel.js";
 
@@ -14,7 +13,7 @@ const toObjectId = (id) => {
   }
 };
 
-// -------------------- CREATE / PLACE ORDER --------------------
+// -------------------- CREATE / PLACE ORDER stripe --------------------
 export const placeOrder = async (req, res) => {
   try {
     const {
@@ -30,7 +29,6 @@ export const placeOrder = async (req, res) => {
         .json({ success: false, message: "Missing fields" });
 
     const userId = req.user._id;
-    zz;
 
     const orderItems = cartItems.map((item) => ({
       product: toObjectId(item.productId || item.id || item._id),
@@ -156,21 +154,50 @@ export const placeCashOrder = async (req, res) => {
   }
 };
 
+//Done
+
 // -------------------- GET USER ORDERS --------------------
 export const getMyOrders = async (req, res) => {
   try {
     const orders = await Order.find({ user: req.user._id })
       .populate("user", "username email")
-      .populate({ path: "delivery" })
+      .populate({
+        path: "delivery",
+        select:
+          "currentStatus trackingNumber expectedDate actualDeliveryDate updatedAt",
+      })
       .populate("orderItems.product", "name price image")
       .sort({ createdAt: -1 });
 
-    res.status(200).json({ success: true, orders });
+    // Include deliveryStatus + shipping address for frontend
+    const formattedOrders = orders.map((order) => ({
+      _id: order._id,
+      totalPrice: order.totalPrice,
+      createdAt: order.createdAt,
+      status: order.status,
+      user: order.user,
+      orderItems: order.orderItems,
+      delivery: order.delivery,
+      deliveryStatus: order.delivery?.currentStatus || "Pending",
+      shippingAddress: {
+        name: order.shippingAddress?.name || "",
+        mobile: order.shippingAddress?.mobile || "",
+        address: order.shippingAddress?.address || "",
+        city: order.shippingAddress?.city || "",
+        state: order.shippingAddress?.state || "",
+        country: order.shippingAddress?.country || "",
+        postalCode: order.shippingAddress?.postalCode || "",
+      },
+    }));
+
+    res.status(200).json({ success: true, orders: formattedOrders });
   } catch (err) {
-    console.error(err);
+    console.error("Error fetching user orders:", err);
     res.status(500).json({ success: false, message: "Failed to fetch orders" });
   }
 };
+
+//Done
 
 // -------------------- GET ALL ORDERS (ADMIN) --------------------
 export const getAllOrders = async (req, res) => {
@@ -190,7 +217,9 @@ export const getAllOrders = async (req, res) => {
   }
 };
 
-// -------------------- GET RECENT ORDERS --------------------
+//admin -done
+
+// -------------------- GET  RECENT  5 ORDERS --------------------
 export const getRecentOrders = async (req, res) => {
   try {
     const recentOrders = await Order.find()
@@ -211,12 +240,35 @@ export const getRecentOrders = async (req, res) => {
   }
 };
 
-// -------------------- UPDATE ORDER STATUS --------------------
+// -------------------- GET TOTAL ORDERS --------------------
+export const getTotalOrders = async (req, res) => {
+  try {
+    // Count all orders in the database
+    const totalOrders = await Order.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      totalOrders,
+      message: `There are ${totalOrders} orders in total.`,
+    });
+  } catch (err) {
+    console.error("Error calculating total orders:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to calculate total orders" });
+  }
+};
+
+//user- for get first 5 order
+
+// -------------------- UPDATE Payment ORDER STATUS --------------------
 
 export const updateOrderStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
+
     const { status } = req.body; // e.g., "pending", "paid", "failed"
+
     if (!status)
       return res
         .status(400)
@@ -250,16 +302,15 @@ export const updateOrderStatus = async (req, res) => {
       .populate({ path: "delivery" })
       .populate("orderItems.product", "name price image");
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Payment status updated",
-        order: populatedOrder,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Payment status updated",
+      order: populatedOrder,
+    });
   } catch (err) {
     console.error(err);
     res
+
       .status(500)
       .json({ success: false, message: "Failed to update payment status" });
   }
@@ -295,16 +346,28 @@ export const updateDeliveryStatus = async (req, res) => {
     delivery.trackingUpdates.push({ status });
     await delivery.save();
 
-    if (status === "Delivered") {
+    // Update order if delivered
+    if (status === "Delivered" && delivery.order) {
       const order = await Order.findById(delivery.order._id);
-      order.isDelivered = true;
-      order.orderStatus = "completed";
-      await order.save();
+      if (order) {
+        order.isDelivered = true;
+        order.orderStatus = "completed";
+        await order.save();
+      }
     }
+
+    // Return updated delivery and order
+    const populatedDelivery = await Delivery.findById(deliveryId)
+      .populate("order")
+      .populate("order.orderItems.product", "name price image");
 
     res
       .status(200)
-      .json({ success: true, message: "Delivery status updated", delivery });
+      .json({
+        success: true,
+        message: "Delivery status updated",
+        delivery: populatedDelivery,
+      });
   } catch (err) {
     console.error(err);
     res

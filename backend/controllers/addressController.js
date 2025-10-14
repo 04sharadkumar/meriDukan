@@ -16,6 +16,7 @@ export const addAddress = async (req, res) => {
       city,
       pincode,
     });
+    
 
     await newAddress.save();
 

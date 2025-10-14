@@ -17,6 +17,8 @@ import AddProduct from './components/Admin/AddProduct';
 import EditProduct from './components/Admin/EditProduct';
 import User from './components/Admin/User';
 import OrderTab from './components/Admin/OrderTab';
+import AdminSetting from './components/Admin/adminSetting';
+import Catageory from './components/Admin/Catageory';
 
 import CheckoutPage from './components/CheckOut/CheckoutPage';
 import ProtectedAdminRoute from './context/ProtectedAdminRoute';
@@ -28,7 +30,7 @@ import WishlistTab from './components/profileTabs/WishlistTab';
 import PaymentHistory from './components/profileTabs/PaymentHistory';
 import AccountSettingsTab from './components/profileTabs/AccountSettingsTab'
 import RevenueTab from './components/Admin/RevenueTab';
-
+import MyOrders from './components/MyOrders';
 
 import NewSlide from './components/NewSlide';
 import ProductPage from './components/ProductDetails';
@@ -37,7 +39,6 @@ import ProductPage from './components/ProductDetails';
 import NotFound from './pages/NotFound';
 import SuccessPage from './pages/SuccessPage'
 import AdminBannerPage from './pages/AdminBannerPage';
-
 import Filter from './components/Filter';
 
 function App() {
@@ -67,6 +68,9 @@ function App() {
        <Route path="/admin/orders" element={<ProtectedAdminRoute><OrderTab /></ProtectedAdminRoute>} />
        <Route path="/admin/revenue" element={<ProtectedAdminRoute><RevenueTab /></ProtectedAdminRoute>} />
        <Route path="/admin/banners" element={<ProtectedAdminRoute><AdminBannerPage /></ProtectedAdminRoute>} />
+       <Route path="/admin/settings" element={<ProtectedAdminRoute><AdminSetting /></ProtectedAdminRoute>} />
+       <Route path="/admin/categories" element={<ProtectedAdminRoute><Catageory /></ProtectedAdminRoute>} />
+
 
 
         {/* ✅ Protected Routes */}
@@ -76,7 +80,7 @@ function App() {
         <Route index element={<AccountSettingsTab />} />
 
         
-        <Route path="orders" element={<OrdersTab />} />
+        <Route path="orders" element={<MyOrders />} />
         <Route path="wishlist" element={<WishlistTab />} />
         <Route path="paymentHistory" element={<PaymentHistory />} />
         <Route path="account-settings" element={<AccountSettingsTab />} />

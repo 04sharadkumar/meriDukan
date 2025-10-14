@@ -7,7 +7,8 @@ import {
   createOrder,
   placeCashOrder,
   updateOrderStatus,
-  updateDeliveryStatus
+  updateDeliveryStatus,
+  getTotalOrders,
 } from "../controllers/orderController.js";
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
@@ -27,7 +28,8 @@ router.post("/cash", protect, placeCashOrder);
 router.post("/create", protect, createOrder);
 
 // Get recent orders (admin or dashboard)
-router.get("/totalOrder", protect, adminOnly, getRecentOrders);
+router.get("/totalOrder", protect, adminOnly, getTotalOrders);
+
 router.get("/getRecentOrders", protect, adminOnly, getRecentOrders);
 
 // -------------------- ADMIN ROUTES --------------------
@@ -35,9 +37,19 @@ router.get("/getRecentOrders", protect, adminOnly, getRecentOrders);
 router.get("/getAllOrders", protect, adminOnly, getAllOrders);
 
 // Update order payment/status
-router.put("/updateOrderStatus/:orderId", protect, adminOnly, updateOrderStatus);
+router.put(
+  "/updateOrderStatus/:orderId",
+  protect,
+  adminOnly,
+  updateOrderStatus
+);
 
 // Update delivery status
-router.put("/updateDelivery/:deliveryId", protect, adminOnly, updateDeliveryStatus);
+router.put(
+  "/updateDelivery/:deliveryId",
+  protect,
+  adminOnly,
+  updateDeliveryStatus
+);
 
 export default router;

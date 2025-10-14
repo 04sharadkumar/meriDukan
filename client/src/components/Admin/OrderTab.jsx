@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import OrderFilters from "./Order/OrderFilters";
 import OrderTable from "./Order/OrderTable";
+import { getCookie } from "../../utils/cookieHelper";
 
 const OrderTab = () => {
   const [orders, setOrders] = useState([]);
@@ -13,9 +14,11 @@ const OrderTab = () => {
 
   // Fetch all orders
   const fetchData = async () => {
+
+    const authToken = getCookie("authToken");
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:5000/api/orders/getAllOrders", { withCredentials: true });
+      const res = await axios.get("http://localhost:5000/api/orders/getAllOrders", { headers: { Authorization: `Bearer ${authToken}` }, });
       setOrders(res.data.orders);
       setFilteredOrders(res.data.orders);
       setLoading(false);
@@ -27,11 +30,14 @@ const OrderTab = () => {
 
   // Update payment status
   const updateOrderStatus = async (orderId, newStatus) => {
+
+    const authToken = getCookie("authToken");
+
     try {
       await axios.put(
         `http://localhost:5000/api/orders/updateOrderStatus/${orderId}`,
         { status: newStatus },
-        { withCredentials: true }
+        {headers: { Authorization: `Bearer ${authToken}` }},
       );
       fetchData();
     } catch (err) {
@@ -41,11 +47,13 @@ const OrderTab = () => {
 
   // Update delivery status
   const updateDeliveryStatus = async (deliveryId, newStatus) => {
+
+    const authToken = getCookie("authToken");
     try {
       await axios.put(
         `http://localhost:5000/api/orders/updateDelivery/${deliveryId}`,
         { status: newStatus },
-        { withCredentials: true }
+        {headers: { Authorization: `Bearer ${authToken}` }},
       );
       fetchData();
     } catch (err) {

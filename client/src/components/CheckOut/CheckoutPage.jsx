@@ -46,6 +46,7 @@ export default function Checkout() {
       }
     };
     fetchCart();
+    
   }, []);
 
   // 🔹 Check Login

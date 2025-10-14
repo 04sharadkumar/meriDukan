@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import Order from "../models/orderModel.js";
+import Delivery from "../models/deliveryModel.js";
 
 dotenv.config();
 
@@ -82,6 +83,8 @@ export const createCheckoutSession = async (req, res) => {
 export const verifypaymentSession = async (req, res) => {
   try {
     const { sessionId } = req.body;
+    
+    
     if (!sessionId) return res.status(400).json({ success: false, message: "Session ID missing" });
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -96,26 +99,44 @@ export const verifypaymentSession = async (req, res) => {
       return res.json({ success: true, message: "Order already exists", order: existingOrder });
     }
 
-    const order = new Order({
-      user: session.metadata.userId,
-      orderItems: JSON.parse(session.metadata.cartItems).map(i => ({
-        product: i.id || null,
-        name: i.name || "Unknown Product",
-        qty: i.qty,
-        price: i.price,
-        image: i.image || "",
-      })),
-      shippingAddress: JSON.parse(session.metadata.shippingInfo || "{}"),
-      paymentMethod: "Stripe",
-      paymentStatus: "paid",
-      paymentResult: {
-        id: session.payment_intent,
-        status: session.payment_status,
-      },
-      totalPrice: Number(session.metadata.totalAmount) || session.amount_total / 100,
-      isPaid: true,
-      paidAt: new Date(),
-    });
+
+    // ✅ Create order same way as COD
+    const orderItems = JSON.parse(session.metadata.cartItems).map(i => ({
+      product: i.id || null,
+      name: i.name || "Unknown Product",
+      qty: i.qty,
+      price: i.price,
+      image: i.image || "",
+    }));
+
+    const shippingInfo = JSON.parse(session.metadata.shippingInfo || "{}");
+
+   const order = new Order({
+  user: session.metadata.userId,
+  orderItems: JSON.parse(session.metadata.cartItems).map(i => ({
+    product: i.id || null,
+    name: i.name || "Unknown Product",
+    qty: i.qty,
+    price: i.price,
+    image: i.image || "",
+  })),
+  shippingAddress: JSON.parse(session.metadata.shippingInfo || "{}"),
+  paymentMethod: "Stripe",
+  paymentStatus: "paid",
+  paymentResult: {
+    id: session.payment_intent,
+    status: session.payment_status,
+  },
+  totalPrice: Number(session.metadata.totalAmount) || session.amount_total / 100,
+  isPaid: true,
+  paidAt: new Date(),
+});
+
+// ✅ Delivery create karo
+const delivery = await Delivery.create({ order: order._id });
+order.delivery = delivery._id;
+await order.save();
+
 
     await order.save();
 
