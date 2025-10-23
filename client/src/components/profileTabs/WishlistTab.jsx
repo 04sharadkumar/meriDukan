@@ -17,8 +17,6 @@ const WishlistTab = ({ addToCart }) => {
       try {
         if (user) {
           const res = await axiosInstance.get('/api/wishlist');
-
-          console.log(res.data);
           
           setWishlistItems(res.data.wishlist || []);
         } else {
@@ -76,7 +74,7 @@ const removeFromWishlist = async (productId) => {
     });
     toast.success('Added to cart!');
   } catch (err) {
-    console.log(err);
+    console.log("Error in the WishlistTab",err);
     
     toast.error('Login to add to cart');
   }

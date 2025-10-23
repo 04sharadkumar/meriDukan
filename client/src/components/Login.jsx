@@ -36,8 +36,8 @@ const handleSubmit = async (e) => {
 
     const { authToken, user } = response.data;
 
-    console.log(response.data);
-    console.log(response.data.user.isAdmin);
+    // console.log(response.data);
+    // console.log(response.data.user.isAdmin);
     
     
 
@@ -52,7 +52,7 @@ if (user.isAdmin) {
   setCookie("authToken", authToken, { maxAge: 7 * 24 * 60 * 60 });
 }
 
-    console.log("Cookie set successfully:");  
+    // console.log("Cookie set successfully:");  
     toast.success('Login successful!');
 
     navigate(user?.isAdmin ? "/admin" : "/profile");

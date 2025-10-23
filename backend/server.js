@@ -2,6 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import http from "http"; // ✅ needed for Socket.IO
+import { Server } from "socket.io"; // ✅ needed for Socket.IO
 
 import userRoutes from "./routes/userRoute.js";
 import connectDB from "./utils/connectDB.js";
@@ -16,6 +18,7 @@ import otpRoutes from "./routes/otpRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import addressRoutes from "./routes/addressRoutes.js";
 import bannerRoutes from "./routes/bannerRoutes.js";
+import adminNotifications from "./routes/adminNotificationRoutes.js";
 
 dotenv.config(); // ✅ Load .env before using it
 connectDB(); // ✅ Call only after dotenv.config()
@@ -71,6 +74,30 @@ app.use("/api/review", reviewRoutes);
 
 app.use("/api/admin/banners", bannerRoutes);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
+app.use("/api/admin/notifications", adminNotifications);
+
+// ------------------- SOCKET.IO SETUP -------------------
+const server = http.createServer(app);
+
+export const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+  },
+});
+
+
+
+io.on("connection", (socket) => {
+  console.log("⚡ New client connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("❌ Client disconnected:", socket.id);
+  });
+  
+});
+
+// Use server.listen instead of app.listen
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

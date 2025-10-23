@@ -37,6 +37,9 @@ export default function Checkout() {
       try {
         setLoadingCart(true);
         const res = await axiosInstance.get("/api/cart", { headers });
+        
+       
+        
         setCart(res.data.items || []);
       } catch (err) {
         console.error("Failed to fetch cart:", err);

@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { categories, brands } from "../../data/filterData.js";
 
 const AddProduct = () => {
   const [form, setForm] = useState({
@@ -11,32 +12,32 @@ const AddProduct = () => {
     discountPrice: "",
     stock: "",
     category: "",
+    subCategory: "",
     brand: "",
     sizes: [],
   });
 
-  const [images, setImages] = useState([]); // multiple images
+  const [images, setImages] = useState([]);
   const [specifications, setSpecifications] = useState([{ key: "", value: "" }]);
   const [additionalInfo, setAdditionalInfo] = useState([{ key: "", value: "" }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const navigate = useNavigate();
 
-  // handle basic input fields
+  // Handle basic input fields
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
   };
 
-  // multiple images select
+  // Handle file selection
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     setImages(files);
-    // Reset value so same file can be chosen again
     e.target.value = "";
   };
 
-  // dynamic fields for specs & info
+  // Dynamic fields for specifications & additional info
   const handleDynamicChange = (index, type, field, value) => {
     if (type === "specifications") {
       const newSpecs = [...specifications];
@@ -65,6 +66,11 @@ const AddProduct = () => {
     }
   };
 
+  // Get subcategories based on selected main category
+  const selectedCategoryObj = categories.find((c) => c.name === form.category);
+  const subCategories = selectedCategoryObj?.sub || [];
+
+  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -72,28 +78,28 @@ const AddProduct = () => {
     try {
       const formData = new FormData();
 
-      // append basic fields
       Object.keys(form).forEach((key) => {
         if (Array.isArray(form[key])) {
-          formData.append(key, JSON.stringify(form[key])); // handle sizes array
+          formData.append(key, JSON.stringify(form[key]));
         } else {
           formData.append(key, form[key]);
         }
       });
 
-      // append images
       images.forEach((img) => {
-        formData.append("images", img); // must match backend upload.array("images")
+        formData.append("images", img);
       });
 
-      // append specs & info as JSON
       formData.append("specifications", JSON.stringify(specifications));
       formData.append("additionalInfo", JSON.stringify(additionalInfo));
 
-      await axios.post("http://localhost:5000/api/admin/products", formData, {
+       await axios.post("http://localhost:5000/api/admin/products", formData, {
         headers: { "Content-Type": "multipart/form-data" },
         withCredentials: true,
       });
+
+      
+      
 
       toast.success("✅ Product added successfully!");
       navigate("/admin/products");
@@ -104,60 +110,6 @@ const AddProduct = () => {
     }
   };
 
-  const categories = [
-  // Clothing - Women
-  "Women T-shirts",
-  "Women Tops And Tunics",
-  "Women Kurtas",
-  "Women Sarees",
-  "Women Dresses",
-  "Women Jeans",
-  "Women Skirts",
-  "Women Jackets",
-  "Women Sweaters",
-  "Women Shorts",
-  "Women Leggings",
-
-  // Clothing - Men
-  "Men T-shirts",
-  "Men Shirts",
-  "Men Jeans",
-  "Men Trousers",
-  "Men Shorts",
-  "Men Jackets",
-  "Men Sweaters",
-  "Men Kurta",
-  
-  // Clothing - Kids
-  "Kids T-shirts",
-  "Kids Dresses",
-  "Kids Shorts",
-  "Kids Jackets",
-  "Baby Clothing",
-
-  // Clothing - Accessories
-  "Caps & Hats",
-  "Belts",
-  "Scarves & Mufflers",
-  "Socks",
-  "Innerwear",
-  "Nightwear",
-
-  // Beauty Section
-  "Face Wash",
-  "Moisturizer",
-  "Lipstick",
-  "Kajal",
-  "Nail Polish",
-  "Perfume",
-  "Hair Oil",
-  "Hair Shampoo",
-  "Body Lotions & Creams",
-  "Hand Sanitizer",
-  "Hand Wash",
-];
-
-
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
@@ -165,54 +117,132 @@ const AddProduct = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic fields */}
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-  {["name", "brand", "category", "price", "discountPrice", "stock"].map((field) => {
-    // Category field ko select banate hain
-    if (field === "category") {
-      return (
-        <div key={field}>
-          <label className="block text-sm font-medium text-gray-700">
-            Category
-          </label>
-          <select
-            name="category"
-            value={form.category}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-lg"
-            required
-          >
-            <option value="">Select Category</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-        </div>
-      );
-    }
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Product Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Product Name</label>
+              <input
+                name="name"
+                type="text"
+                value={form.name}
+                onChange={handleChange}
+                className="w-full p-2 border rounded-lg"
+                required
+              />
+            </div>
 
-    // Baaki fields normal input
-    return (
-      <div key={field}>
-        <label className="block text-sm font-medium text-gray-700">
-          {field.charAt(0).toUpperCase() + field.slice(1)}
-        </label>
+            {/* Brand dropdown + custom input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Brand</label>
+              <div className="flex gap-2">
+                <select
+                  name="brand"
+                  value={form.brand}
+                  onChange={handleChange}
+                  className="w-1/2 p-2 border rounded-lg"
+                >
+                  <option value="">Select Brand</option>
+                  {brands.map((b, index) => (
+                    <option key={`${b}-${index}`} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  placeholder="Or enter new brand"
+                  value={form.brand}
+                  onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                  className="w-1/2 p-2 border rounded-lg"
+                />
+              </div>
+            </div>
 
-        <input
-          name={field}
-          type={["price", "discountPrice", "stock"].includes(field)
-            ? "number"
-            : "text"}
-          value={form[field]}
-          onChange={handleChange}
-          className="w-full p-2 border rounded-lg"
-          required={["name", "category", "price", "stock"].includes(field)}
-        />
-      </div>
-    );
-  })}
-</div>
+            {/* Category dropdown + custom input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Category</label>
+              <div className="flex gap-2">
+                <select
+                  name="category"
+                  value={form.category}
+                  onChange={handleChange}
+                  className="w-1/2 p-2 border rounded-lg"
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((cat, index) => (
+                    <option key={`${cat.name}-${index}`} value={cat.name}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  placeholder="Or enter new category"
+                  value={form.category}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  className="w-1/2 p-2 border rounded-lg"
+                />
+              </div>
+            </div>
+
+            {/* Subcategory dropdown (only if category has subs) */}
+            {subCategories.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Subcategory</label>
+                <select
+                  name="subCategory"
+                  value={form.subCategory}
+                  onChange={handleChange}
+                  className="w-full p-2 border rounded-lg"
+                >
+                  <option value="">Select Subcategory</option>
+                  {subCategories.map((sub, index) => (
+                    <option key={`${sub}-${index}`} value={sub}>
+                      {sub}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Price */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Price (₹)</label>
+              <input
+                name="price"
+                type="number"
+                value={form.price}
+                onChange={handleChange}
+                className="w-full p-2 border rounded-lg"
+                required
+              />
+            </div>
+
+            {/* Discount Price */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Discount Price (₹)</label>
+              <input
+                name="discountPrice"
+                type="number"
+                value={form.discountPrice}
+                onChange={handleChange}
+                className="w-full p-2 border rounded-lg"
+              />
+            </div>
+
+            {/* Stock */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Stock</label>
+              <input
+                name="stock"
+                type="number"
+                value={form.stock}
+                onChange={handleChange}
+                className="w-full p-2 border rounded-lg"
+                required
+              />
+            </div>
+          </div>
 
           {/* Description */}
           <div>
@@ -227,7 +257,7 @@ const AddProduct = () => {
             />
           </div>
 
-          {/* Images */}
+          {/* Image Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Product Images</label>
             <input
@@ -237,7 +267,19 @@ const AddProduct = () => {
               onChange={handleFileChange}
               className="block w-full text-sm text-gray-500"
             />
-            {/* 🔴 Removed preview rendering */}
+            {images.length > 0 && (
+              <div className="flex flex-wrap gap-3 mt-3">
+                {images.map((file, idx) => (
+                  <div key={idx} className="relative w-20 h-20 border rounded overflow-hidden">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt="preview"
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Specifications */}
@@ -249,14 +291,18 @@ const AddProduct = () => {
                   type="text"
                   placeholder="Key"
                   value={spec.key}
-                  onChange={(e) => handleDynamicChange(i, "specifications", "key", e.target.value)}
+                  onChange={(e) =>
+                    handleDynamicChange(i, "specifications", "key", e.target.value)
+                  }
                   className="flex-1 p-2 border rounded-lg"
                 />
                 <input
                   type="text"
                   placeholder="Value"
                   value={spec.value}
-                  onChange={(e) => handleDynamicChange(i, "specifications", "value", e.target.value)}
+                  onChange={(e) =>
+                    handleDynamicChange(i, "specifications", "value", e.target.value)
+                  }
                   className="flex-1 p-2 border rounded-lg"
                 />
                 <button
@@ -286,14 +332,18 @@ const AddProduct = () => {
                   type="text"
                   placeholder="Key"
                   value={info.key}
-                  onChange={(e) => handleDynamicChange(i, "additionalInfo", "key", e.target.value)}
+                  onChange={(e) =>
+                    handleDynamicChange(i, "additionalInfo", "key", e.target.value)
+                  }
                   className="flex-1 p-2 border rounded-lg"
                 />
                 <input
                   type="text"
                   placeholder="Value"
                   value={info.value}
-                  onChange={(e) => handleDynamicChange(i, "additionalInfo", "value", e.target.value)}
+                  onChange={(e) =>
+                    handleDynamicChange(i, "additionalInfo", "value", e.target.value)
+                  }
                   className="flex-1 p-2 border rounded-lg"
                 />
                 <button
@@ -314,7 +364,7 @@ const AddProduct = () => {
             </button>
           </div>
 
-          {/* Submit */}
+          {/* Buttons */}
           <div className="flex justify-end space-x-4 pt-4">
             <button
               type="button"

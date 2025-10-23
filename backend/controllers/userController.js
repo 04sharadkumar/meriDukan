@@ -1,6 +1,8 @@
 import User from '../models/userModel.js';
 import bcrypt from 'bcryptjs';
 import generateToken from "../utils/generateToken.js";
+import Notification from '../models/NotificationModel.js';
+import { io } from "../server.js";
 
 // ✅ Register Controller
 export const userRegister = async (req, res) => {
@@ -18,6 +20,12 @@ export const userRegister = async (req, res) => {
 
     const newUser = new User({ username, email, password });
     await newUser.save();
+
+    // ✅ Notification for admin
+    await Notification.create({
+      message: `New user registered: ${newUser.username || newUser.email}`,
+      type: "users",
+    });
 
     // ✅ Token generate karo (but cookie mat bhejo)
     const authToken = generateToken(newUser);
@@ -102,6 +110,7 @@ export const updateProfile = async (req, res) => {
 
     await user.save();
 
+  
     res.json({ message: 'Profile updated successfully', user });
   } catch (err) {
     console.error(err);

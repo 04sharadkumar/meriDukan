@@ -13,7 +13,6 @@ export default function Step4Payment({
 }) {
   const navigate = useNavigate(); // 🔹 navigate function
   const [loading, setLoading] = useState(false);
-  
 
   if (step !== 4) return null;
 
@@ -35,7 +34,7 @@ export default function Step4Payment({
       if (formData.paymentMethod === "cash") {
         const orderPayload = {
           cartItems: (formData.items || []).map((item) => ({
-            id: item.id || item._id,
+            productId: item.productId || item.product || item._id,
             name: item.name,
             qty: item.qty || item.quantity,
             price:
@@ -63,22 +62,21 @@ export default function Step4Payment({
           { headers }
         );
 
-        console.log(data);
+        
 
         if (data.success) {
-  toast.success("Order placed successfully with COD!");
+          toast.success("Order placed successfully with COD!");
 
-  // Parent ko notify karo
-  onPaymentSuccess && onPaymentSuccess(data);
+          // Parent ko notify karo
+          onPaymentSuccess && onPaymentSuccess(data);
 
-  // Cart clear karo
-  if (typeof clearCart === "function") {
-    await clearCart();
-  }
-  // Redirect karo (yaha "/" = home page)
-  navigate("/"); 
-}
- else {
+          // Cart clear karo
+          if (typeof clearCart === "function") {
+            await clearCart();
+          }
+          // Redirect karo (yaha "/" = home page)
+          navigate("/");
+        } else {
           alert("❌ Failed to place COD order");
         }
       }
@@ -88,7 +86,7 @@ export default function Step4Payment({
       // ----------------
       else if (formData.paymentMethod === "card") {
         const cartItems = (formData.items || []).map((item) => ({
-          id: item.id || item._id,
+          productId: item.productId || item.product || item._id,
           name: item.name,
           qty: item.qty || item.quantity,
           price:
@@ -109,6 +107,9 @@ export default function Step4Payment({
             },
             { headers }
           );
+
+         
+          
 
           if (data.success && data.url) {
             // Redirect user to Stripe Checkout

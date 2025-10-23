@@ -17,7 +17,7 @@ const ProductImages = ({ productId }) => {
         // 👇 yahan dhyaan rahe response me `product` key h ya direct product object
         setProduct(res.data.product || res.data); 
         setMainImage(0); // default 1st image
-        console.log("Fetched Product:", res.data);
+        
       } catch (err) {
         console.error("Error fetching product:", err);
       } finally {

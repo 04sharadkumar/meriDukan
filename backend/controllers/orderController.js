@@ -2,6 +2,8 @@ import Stripe from "stripe";
 import mongoose from "mongoose";
 import Order from "../models/orderModel.js";
 import Delivery from "../models/deliveryModel.js";
+import Notification from "../models/NotificationModel.js";
+import Product from "../models/productModel.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -38,6 +40,9 @@ export const placeOrder = async (req, res) => {
       image: item.image || "",
     }));
 
+    console.log(orderItems);
+    
+
     const order = await Order.create({
       user: userId,
       orderItems,
@@ -58,6 +63,26 @@ export const placeOrder = async (req, res) => {
       paidAt: paymentMethod !== "COD" ? new Date() : null,
       orderStatus: "processing",
     });
+
+    // 1️⃣ Admin Notification: New Order
+    await Notification.create({
+      type: "New Order",
+      message: `New order placed by ${req.user.username}`,
+      referenceId: order._id,
+    });
+
+    // 2️⃣ Admin Notification: Low Stock (Optional)
+    for (let item of cartItems) {
+      const product = await Product.findById(item.productId);
+      if (product && product.stock - item.qty <= 5) {
+        // threshold example
+        await Notification.create({
+          type: "Stock Low",
+          message: `Stock for ${product.name} is running low`,
+          referenceId: product._id,
+        });
+      }
+    }
 
     const delivery = await Delivery.create({ order: order._id });
     order.delivery = delivery._id;
@@ -134,9 +159,37 @@ export const placeCashOrder = async (req, res) => {
       orderStatus: "processing",
     });
 
+    // 🏷️ Decrease stock for each product
+    for (const item of cartItems) {
+      const product = await Product.findById(item.productId);
+
+      console.log(product);
+      
+      if (product) {
+        product.stock = Math.max(product.stock - item.qty, 0);
+        await product.save();
+
+        // Low stock alert for admin
+        if (product.stock <= 5) {
+          await Notification.create({
+            type: "stock",
+            message: `⚠️ Stock running low for ${product.name} (Only ${product.stock} left)`,
+          });
+        }
+      }
+    }
+
     const delivery = await Delivery.create({ order: order._id });
     order.delivery = delivery._id;
     await order.save();
+
+    // 🔔 Notify Admin (new order)
+    await Notification.create({
+      message: `🛍️ New order placed by ${
+        req.user.username || req.user.email
+      } (Order ID: ${order._id.toString().slice(-6)})`,
+      type: "orders",
+    });
 
     const populatedOrder = await Order.findById(order._id)
       .populate("user", "username email")
@@ -153,8 +206,6 @@ export const placeCashOrder = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-//Done
 
 // -------------------- GET USER ORDERS --------------------
 export const getMyOrders = async (req, res) => {
@@ -266,8 +317,7 @@ export const getTotalOrders = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
-
-    const { status } = req.body; // e.g., "pending", "paid", "failed"
+    const { status } = req.body; // "pending", "paid", "failed"
 
     if (!status)
       return res
@@ -282,17 +332,42 @@ export const updateOrderStatus = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Invalid payment status value" });
 
-    const order = await Order.findById(orderId);
+    const order = await Order.findById(orderId).populate(
+      "user",
+      "username email"
+    );
     if (!order)
       return res
         .status(404)
         .json({ success: false, message: "Order not found" });
 
     order.paymentStatus = lowerStatus;
-
-    // Automatically update isPaid flag if needed
     order.isPaid = lowerStatus === "paid";
     if (order.isPaid) order.paidAt = new Date();
+
+    // ✅ Notification logic
+    if (order.isPaid) {
+      // User notification
+      if (order.user?._id) {
+        await Notification.create({
+          userId: order.user._id,
+          message: `Your payment for Order ${order._id
+            .toString()
+            .slice(-6)} is completed.`,
+          type: "payment",
+        });
+      }
+
+      // Admin notification
+      await Notification.create({
+        message: `Payment received for Order ${order._id
+          .toString()
+          .slice(-6)} by ${
+          order.user?.username || order.user?.email || "Unknown User"
+        }`,
+        type: "orders",
+      });
+    }
 
     await order.save();
 
@@ -308,11 +383,11 @@ export const updateOrderStatus = async (req, res) => {
       order: populatedOrder,
     });
   } catch (err) {
-    console.error(err);
-    res
-
-      .status(500)
-      .json({ success: false, message: "Failed to update payment status" });
+    console.error("Update Order Status Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update payment status",
+    });
   }
 };
 
@@ -346,6 +421,41 @@ export const updateDeliveryStatus = async (req, res) => {
     delivery.trackingUpdates.push({ status });
     await delivery.save();
 
+    // ✅ Notification logic
+    if (delivery.order) {
+      const orderIdShort = delivery.order._id.toString().slice(-6);
+
+      if (status === "Delivered") {
+        // Notify user
+        await Notification.create({
+          userId: delivery.order.user,
+          message: `Your Order ${orderIdShort} has been delivered.`,
+          type: "delivery",
+        });
+
+        // Optional: Admin notification
+        await Notification.create({
+          message: `Order ${orderIdShort} has been marked as delivered.`,
+          type: "orders",
+        });
+
+        // Update order as delivered
+        const order = await Order.findById(delivery.order._id);
+        if (order) {
+          order.isDelivered = true;
+          order.orderStatus = "completed";
+          await order.save();
+        }
+      } else {
+        // Notify user for other status changes
+        await Notification.create({
+          userId: delivery.order.user,
+          message: `Your Order ${orderIdShort} status updated: ${status}`,
+          type: "delivery",
+        });
+      }
+    }
+
     // Update order if delivered
     if (status === "Delivered" && delivery.order) {
       const order = await Order.findById(delivery.order._id);
@@ -361,13 +471,11 @@ export const updateDeliveryStatus = async (req, res) => {
       .populate("order")
       .populate("order.orderItems.product", "name price image");
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Delivery status updated",
-        delivery: populatedDelivery,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Delivery status updated",
+      delivery: populatedDelivery,
+    });
   } catch (err) {
     console.error(err);
     res
@@ -440,6 +548,23 @@ export const createOrder = async (req, res) => {
 
     order.delivery = delivery._id;
     await order.save();
+
+    // 🔔 Notify Admin about new order
+    await Notification.create({
+      message: `New order placed by ${
+        req.user.username || req.user.email
+      } (Order ID: ${order._id.slice(-6)})`,
+      type: "orders",
+    });
+
+    // 🔔 Optionally notify the user
+    await Notification.create({
+      userId: req.user._id,
+      message: `Your order ${order._id.slice(
+        -6
+      )} has been successfully created.`,
+      type: "orders",
+    });
 
     // Populate for response
     const populatedOrder = await Order.findById(order._id)

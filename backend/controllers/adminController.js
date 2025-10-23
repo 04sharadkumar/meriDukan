@@ -1,10 +1,10 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 import User from "../models/userModel.js";
-import Product from '../models/productModel.js';
+import Product from "../models/productModel.js";
 import Order from "../models/orderModel.js";
-import ExcelJS from 'exceljs';
-
-
+import ExcelJS from "exceljs";
+import Notification from "../models/NotificationModel.js";
+import { io } from "../server.js";
 // ✅ Promote any user to admin (admin only)
 export const makeAdmin = async (req, res) => {
   try {
@@ -104,6 +104,12 @@ export const addProduct = async (req, res) => {
 
     await product.save();
 
+    // ✅ Create admin notification
+    await Notification.create({
+      message: `New product added: ${product.name} (Category: ${product.category})`,
+      type: "product",
+    });
+
     res.status(201).json({
       success: true,
       message: "✅ Product created successfully",
@@ -118,8 +124,6 @@ export const addProduct = async (req, res) => {
     });
   }
 };
-
-
 
 // ✅ Update Product
 export const updateProduct = async (req, res) => {
@@ -217,16 +221,16 @@ export const deleteProduct = async (req, res) => {
     const deletedProduct = await Product.findByIdAndDelete(id);
 
     if (!deletedProduct) {
-      return res.status(404).json({ error: 'Product not found' });
+      return res.status(404).json({ error: "Product not found" });
     }
 
     res.status(200).json({
-      message: 'Product deleted successfully',
+      message: "Product deleted successfully",
       product: deletedProduct,
     });
   } catch (err) {
-    console.error('Error deleting product:', err);
-    res.status(500).json({ error: 'Server error. Could not delete product.' });
+    console.error("Error deleting product:", err);
+    res.status(500).json({ error: "Server error. Could not delete product." });
   }
 };
 
@@ -261,85 +265,79 @@ export const getAdminDashboardStats = async (req, res) => {
       dailyOrders,
     });
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch dashboard data", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch dashboard data", error: err.message });
   }
 };
 
-export const totalUser  = async(req,res)=>{
-
-
+export const totalUser = async (req, res) => {
   try {
-
     const count = await User.countDocuments();
 
-    res.status(200).json({success:true,
-      totalUser:count
-    })
-    
+    res.status(200).json({ success: true, totalUser: count });
   } catch (error) {
-
-    console.error('Error fetching user count:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-    
+    console.error("Error fetching user count:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
-}
+};
 
 export const exportOrdersToExcel = async (req, res) => {
   try {
     const orders = await Order.find()
-      .populate('user', 'name email')
-      .populate('orderItems.product', 'name'); // Optional: get product details
+      .populate("user", "name email")
+      .populate("orderItems.product", "name"); // Optional: get product details
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Orders');
+    const worksheet = workbook.addWorksheet("Orders");
 
     // Define columns
     worksheet.columns = [
-      { header: 'Order ID', key: '_id', width: 25 },
-      { header: 'Customer Name', key: 'customerName', width: 25 },
-      { header: 'Email', key: 'email', width: 25 },
-      { header: 'Items', key: 'items', width: 40 },
-      { header: 'Total Price', key: 'totalPrice', width: 15 },
-      { header: 'Status', key: 'status', width: 15 },
-      { header: 'Shipping Address', key: 'address', width: 30 },
-      { header: 'Date', key: 'createdAt', width: 20 },
+      { header: "Order ID", key: "_id", width: 25 },
+      { header: "Customer Name", key: "customerName", width: 25 },
+      { header: "Email", key: "email", width: 25 },
+      { header: "Items", key: "items", width: 40 },
+      { header: "Total Price", key: "totalPrice", width: 15 },
+      { header: "Status", key: "status", width: 15 },
+      { header: "Shipping Address", key: "address", width: 30 },
+      { header: "Date", key: "createdAt", width: 20 },
     ];
 
     // Add rows
     orders.forEach((order) => {
       const itemsList = order.orderItems
         .map((item) => `${item.name} (x${item.quantity})`)
-        .join(', ');
+        .join(", ");
 
       const address = `${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.postalCode}, ${order.shippingAddress.country}`;
 
       worksheet.addRow({
         _id: order._id,
-        customerName: order.user?.name || 'Guest',
-        email: order.user?.email || 'N/A',
+        customerName: order.user?.name || "Guest",
+        email: order.user?.email || "N/A",
         items: itemsList,
         totalPrice: order.totalPrice,
         status: order.status,
         address,
-        createdAt: order.createdAt.toISOString().split('T')[0],
+        createdAt: order.createdAt.toISOString().split("T")[0],
       });
     });
 
     // Response headers
     res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
     res.setHeader(
-      'Content-Disposition',
-      'attachment; filename=orders-report.xlsx'
+      "Content-Disposition",
+      "attachment; filename=orders-report.xlsx"
     );
 
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    console.error('Error exporting Excel:', error);
-    res.status(500).json({ success: false, message: 'Excel export failed' });
+    console.error("Error exporting Excel:", error);
+    res.status(500).json({ success: false, message: "Excel export failed" });
   }
 };
 
@@ -349,9 +347,9 @@ export const getTotalRevenue = async (req, res) => {
       {
         $group: {
           _id: null,
-          totalRevenue: { $sum: "$totalPrice" }
-        }
-      }
+          totalRevenue: { $sum: "$totalPrice" },
+        },
+      },
     ]);
 
     const totalRevenue = result[0]?.totalRevenue || 0;
@@ -359,10 +357,11 @@ export const getTotalRevenue = async (req, res) => {
     res.status(200).json({ success: true, totalRevenue });
   } catch (error) {
     console.error("Error calculating revenue:", error);
-    res.status(500).json({ success: false, message: "Failed to calculate revenue" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to calculate revenue" });
   }
 };
-
 
 export const getMonthlyRevenue = async (req, res) => {
   try {
@@ -373,15 +372,27 @@ export const getMonthlyRevenue = async (req, res) => {
 
     const monthlyData = Array(12).fill(0); // All months initially zero
 
-    allOrders.forEach(order => {
+    allOrders.forEach((order) => {
       const month = new Date(order.createdAt).getMonth();
       if (month <= currentMonthIndex) {
         monthlyData[month] += order.totalPrice;
       }
     });
 
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
 
     const result = monthNames
       .slice(0, currentMonthIndex + 1) // Only up to current month
@@ -392,12 +403,10 @@ export const getMonthlyRevenue = async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error('Revenue Error:', error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error("Revenue Error:", error);
+    res.status(500).json({ message: "Server Error" });
   }
 };
-
-
 
 export const getAdminStats = async (req, res) => {
   try {
@@ -419,22 +428,22 @@ export const getAdminStats = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password'); // exclude password
+    const users = await User.find().select("-password"); // exclude password
     res.status(200).json({
       success: true,
       users,
     });
   } catch (error) {
-    console.error('Error fetching users:', error.message);
+    console.error("Error fetching users:", error.message);
     res.status(500).json({
       success: false,
-      message: 'Server Error',
+      message: "Server Error",
     });
   }
 };
@@ -442,13 +451,8 @@ export const getAllUsers = async (req, res) => {
 export const deleteUser = async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
-    res.status(200).json({ success: true, message: 'User deleted' });
+    res.status(200).json({ success: true, message: "User deleted" });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Error deleting user' });
-  }}
-
-
-
-
-
-
+    res.status(500).json({ success: false, message: "Error deleting user" });
+  }
+};

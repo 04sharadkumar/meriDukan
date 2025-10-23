@@ -41,10 +41,20 @@ const Filter = () => {
     alert("Applied Filters:\n" + JSON.stringify(selectedFilters, null, 2));
   };
 
+  const clearAllFilters = () => {
+    const reset = Object.keys(selectedFilters).reduce((acc, key) => {
+      acc[key] = [];
+      return acc;
+    }, {});
+    setSelectedFilters(reset);
+  };
+
   const getFilteredItems = (category, items) => {
     const searchTerm = searchTerms[category];
     if (!searchTerm) return items;
-    return items.filter((item) => item.toLowerCase().includes(searchTerm));
+    return items.filter((item) =>
+      item.toLowerCase().includes(searchTerm)
+    );
   };
 
   const renderCheckboxGroup = (category, items, search = false) => {
@@ -52,9 +62,16 @@ const Filter = () => {
 
     return (
       <div>
-        <h3 className="text-xl font-semibold text-gray-800 capitalize mb-5">
-          {category}
-        </h3>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-xl font-semibold text-gray-800 capitalize">
+            {category}
+          </h3>
+          {selectedFilters[category].length > 0 && (
+            <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
+              {selectedFilters[category].length} selected
+            </span>
+          )}
+        </div>
 
         {search && (
           <div className="mb-5">
@@ -106,6 +123,11 @@ const Filter = () => {
     occasion: { title: "Occasion", items: filterData.occasions },
   };
 
+  const totalSelected = Object.values(selectedFilters).reduce(
+    (acc, arr) => acc + arr.length,
+    0
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 flex border border-gray-200 rounded-2xl overflow-hidden shadow-md">
       {/* Sidebar Navigation */}
@@ -125,7 +147,14 @@ const Filter = () => {
                   : "text-gray-700 hover:bg-gray-100"
               }`}
             >
-              {categories[cat].title}
+              <div className="flex justify-between items-center">
+                <span>{categories[cat].title}</span>
+                {selectedFilters[cat].length > 0 && (
+                  <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
+                    {selectedFilters[cat].length}
+                  </span>
+                )}
+              </div>
             </button>
           ))}
         </div>
@@ -143,14 +172,28 @@ const Filter = () => {
           </div>
         </div>
 
-        {/* Apply Button */}
-        <div className="border-t border-gray-200 bg-white p-6">
+        {/* Apply and Clear Buttons */}
+        <div className="border-t border-gray-200 bg-white p-6 flex items-center justify-between">
           <button
-            onClick={applyFilters}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold text-sm hover:bg-blue-700 transition shadow-sm"
+            onClick={clearAllFilters}
+            className="px-5 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition"
           >
-            Apply Filters
+            Clear Filters
           </button>
+
+          <div className="flex items-center gap-3">
+            {totalSelected > 0 && (
+              <span className="text-sm text-gray-600">
+                {totalSelected} selected in total
+              </span>
+            )}
+            <button
+              onClick={applyFilters}
+              className="bg-blue-600 text-white px-5 py-3 rounded-lg font-semibold text-sm hover:bg-blue-700 transition shadow-sm"
+            >
+              Apply Filters
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -69,7 +69,7 @@ const ProductPage = () => {
           `http://localhost:5000/api/review/stats/${productId}`
         );
         setReviewStats(res.data);
-        console.log(res.data);
+       
       } catch (error) {
         console.error("Error fetching review count:", error);
       }
@@ -88,7 +88,7 @@ const ProductPage = () => {
         );
 
         setProduct(res.data.product);
-        console.log(res.data);
+        
       } catch (err) {
         console.error("Error fetching product:", err);
       }

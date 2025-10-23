@@ -51,7 +51,7 @@ const MyOrders = () => {
         }
       );
 
-      console.log(res.data);
+      
 
       const formattedOrders = (res.data.orders || []).map((order) => ({
         ...order,

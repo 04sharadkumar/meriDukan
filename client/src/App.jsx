@@ -19,6 +19,7 @@ import User from './components/Admin/User';
 import OrderTab from './components/Admin/OrderTab';
 import AdminSetting from './components/Admin/adminSetting';
 import Catageory from './components/Admin/Catageory';
+import AdminNotifications from './components/Admin/AdminNotifications';
 
 import CheckoutPage from './components/CheckOut/CheckoutPage';
 import ProtectedAdminRoute from './context/ProtectedAdminRoute';
@@ -70,6 +71,8 @@ function App() {
        <Route path="/admin/banners" element={<ProtectedAdminRoute><AdminBannerPage /></ProtectedAdminRoute>} />
        <Route path="/admin/settings" element={<ProtectedAdminRoute><AdminSetting /></ProtectedAdminRoute>} />
        <Route path="/admin/categories" element={<ProtectedAdminRoute><Catageory /></ProtectedAdminRoute>} />
+       <Route path="/admin/notifications"  element={<ProtectedAdminRoute><AdminNotifications /></ProtectedAdminRoute>} />
+
 
 
 

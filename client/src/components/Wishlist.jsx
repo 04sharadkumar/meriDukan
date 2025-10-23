@@ -18,7 +18,7 @@ const Wishlist = ({ addToCart }) => {
         if (user) {
           const res = await axiosInstance.get('/api/wishlist');
 
-          console.log(res.data);
+         
           
           setWishlistItems(res.data.wishlist || []);
         } else {

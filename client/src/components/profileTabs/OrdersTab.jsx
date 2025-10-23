@@ -12,7 +12,7 @@ const OrdersPage = () => {
           withCredentials: true,
         });
 
-        console.log(res.data);
+        
         
         setOrders(res.data);
       } catch (err) {
@@ -23,18 +23,18 @@ const OrdersPage = () => {
     fetchOrders();
   }, []);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'text-green-600';
-      case 'processing':
-        return 'text-blue-600';
-      case 'cancelled':
-        return 'text-red-600';
-      default:
-        return 'text-yellow-600';
-    }
-  };
+  // const getStatusColor = (status) => {
+  //   switch (status) {
+  //     case 'completed':
+  //       return 'text-green-600';
+  //     case 'processing':
+  //       return 'text-blue-600';
+  //     case 'cancelled':
+  //       return 'text-red-600';
+  //     default:
+  //       return 'text-yellow-600';
+  //   }
+  // };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">

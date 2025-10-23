@@ -22,7 +22,7 @@ export default function Step3Summary({
         setLoading(true);
         const res = await axiosInstance.get("/api/cart");
 
-        console.log(res.data);
+        
 
         const items = (res.data.items || []).map((item) => ({
           ...item,

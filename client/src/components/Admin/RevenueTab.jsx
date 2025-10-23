@@ -66,7 +66,7 @@ const RevenueTab = () => {
           }
         );
 
-        console.log(data);
+        
 
         setOrders(data.orders || []);
         setLoading(false);
