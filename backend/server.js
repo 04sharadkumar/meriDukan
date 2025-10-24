@@ -5,8 +5,8 @@ import cookieParser from "cookie-parser";
 import http from "http"; // ✅ needed for Socket.IO
 import { Server } from "socket.io"; // ✅ needed for Socket.IO
 
-import userRoutes from "./routes/userRoute.js";
 import connectDB from "./utils/connectDB.js";
+import userRoutes from "./routes/userRoute.js";
 import productRoutes from "./routes/productRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
@@ -20,15 +20,17 @@ import addressRoutes from "./routes/addressRoutes.js";
 import bannerRoutes from "./routes/bannerRoutes.js";
 import adminNotifications from "./routes/adminNotificationRoutes.js";
 
-dotenv.config(); // ✅ Load .env before using it
-connectDB(); // ✅ Call only after dotenv.config()
+// ----------------------- CONFIG -----------------------
+dotenv.config(); // ✅ Load env before usage
+connectDB();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
+const PORT = process.env.PORT || 5000;
 
-// Middleware
+// ------------------- MIDDLEWARE -------------------
 
-const allowedOrigins = ["http://localhost:5173"];
+const allowedOrigins = ["http://localhost:5173", process.env.CLIENT_URL];
 
 app.use(
   cors({
@@ -49,6 +51,9 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+
+// ------------------- ROUTES -------------------
 
 app.use("/api/auth", userRoutes);
 
@@ -76,17 +81,16 @@ app.use("/api/admin/banners", bannerRoutes);
 
 app.use("/api/admin/notifications", adminNotifications);
 
-// ------------------- SOCKET.IO SETUP -------------------
-const server = http.createServer(app);
+// ------------------- SOCKET.IO -------------------
 
 export const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
     methods: ["GET", "POST"],
+    credentials: true,
+
   },
 });
-
-
 
 io.on("connection", (socket) => {
   console.log("⚡ New client connected:", socket.id);
@@ -94,10 +98,21 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("❌ Client disconnected:", socket.id);
   });
-  
 });
 
-// Use server.listen instead of app.listen
+
+
+// ------------------- ERROR HANDLING -------------------
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found!" });
+});
+
+app.use((err, req, res, next) => {
+  console.error("❌ Internal Server Error:", err.message);
+  res.status(500).json({ message: "Something went wrong!" });
+});
+
+// ------------------- START SERVER -------------------
 server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
